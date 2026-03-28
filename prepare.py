@@ -31,6 +31,10 @@ PROCESSED_DATA_PATH = os.path.join(CACHE_DIR, "gld_features.csv")
 METADATA_PATH = os.path.join(CACHE_DIR, "metadata.json")
 
 GLD_STOOQ_URL = "https://stooq.com/q/d/l/?s=gld.us&i=d"
+GLD_YAHOO_CHART_URL = (
+    "https://query1.finance.yahoo.com/v8/finance/chart/GLD"
+    "?period1=0&period2=9999999999&interval=1d&includePrePost=false&events=div%2Csplits"
+)
 TARGET_COLUMN = "target_hit_up_first"
 
 FEATURE_COLUMNS = [
@@ -104,19 +108,68 @@ def ensure_cache_dir() -> None:
     os.makedirs(CACHE_DIR, exist_ok=True)
 
 
-def download_gld_prices() -> pd.DataFrame:
-    ensure_cache_dir()
-    try:
-        response = requests.get(GLD_STOOQ_URL, timeout=30)
-        response.raise_for_status()
-        with open(RAW_DATA_PATH, "w", encoding="utf-8", newline="") as f:
-            f.write(response.text)
-    except Exception:
-        if not os.path.exists(RAW_DATA_PATH):
-            raise
+def normalize_ohlcv_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    normalized = frame.copy()
+    normalized.columns = [column.lower() for column in normalized.columns]
+    expected = ["date", "open", "high", "low", "close", "volume"]
+    missing = [column for column in expected if column not in normalized.columns]
+    if missing:
+        raise RuntimeError(f"Downloaded dataset missing columns: {missing}")
+    normalized = normalized[expected].copy()
+    normalized["date"] = pd.to_datetime(normalized["date"])
+    normalized = normalized.sort_values("date").drop_duplicates(subset="date", keep="last").reset_index(drop=True)
+    return normalized
+
+
+def download_gld_prices_from_yahoo(session: requests.Session) -> pd.DataFrame:
+    response = session.get(GLD_YAHOO_CHART_URL, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
+    response.raise_for_status()
+    payload = response.json()
+    result = payload["chart"]["result"][0]
+    quote = result["indicators"]["quote"][0]
+    frame = pd.DataFrame(
+        {
+            "date": pd.to_datetime(result["timestamp"], unit="s", utc=True).tz_localize(None),
+            "open": quote["open"],
+            "high": quote["high"],
+            "low": quote["low"],
+            "close": quote["close"],
+            "volume": quote["volume"],
+        }
+    )
+    frame = frame.dropna(subset=["open", "high", "low", "close", "volume"])
+    if frame.empty:
+        raise RuntimeError("Yahoo chart dataset is empty after dropping missing OHLCV rows.")
+    return normalize_ohlcv_frame(frame)
+
+
+def download_gld_prices_from_stooq(session: requests.Session) -> pd.DataFrame:
+    response = session.get(GLD_STOOQ_URL, timeout=30)
+    response.raise_for_status()
+    with open(RAW_DATA_PATH, "w", encoding="utf-8", newline="") as f:
+        f.write(response.text)
     frame = pd.read_csv(RAW_DATA_PATH)
     if frame.empty:
-        raise RuntimeError("Downloaded GLD dataset is empty.")
+        raise RuntimeError("Downloaded GLD dataset from stooq is empty.")
+    return normalize_ohlcv_frame(frame)
+
+
+def download_gld_prices() -> pd.DataFrame:
+    ensure_cache_dir()
+    session = requests.Session()
+    try:
+        frame = download_gld_prices_from_yahoo(session)
+    except Exception:
+        try:
+            frame = download_gld_prices_from_stooq(session)
+        except Exception:
+            if not os.path.exists(RAW_DATA_PATH):
+                raise
+            frame = pd.read_csv(RAW_DATA_PATH)
+            if frame.empty:
+                raise RuntimeError("Cached GLD dataset is empty.")
+            frame = normalize_ohlcv_frame(frame)
+    frame.to_csv(RAW_DATA_PATH, index=False)
     return frame
 
 
