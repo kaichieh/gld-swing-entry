@@ -278,17 +278,33 @@
 
 ## 一、主線升級確認
 
-- [ ] 以 `ret_60 + sma_gap_60 + neg_weight=1.15` 做 seed 與 4-fold walk-forward 驗證。Performance:
-- [ ] 比較 `ret_60 + sma_gap_60 + neg_weight=1.15` 與原 combo 在自動 threshold、固定 `0.49`、`top 15%` 下的非重疊回測。Performance:
-- [ ] 比較 `ret_60 + sma_gap_60 + neg_weight=1.15` 的 `headline_score` 與 `promotion_gate` 是否能穩定勝過原 combo。Performance:
+- [x] 以 `ret_60 + sma_gap_60 + neg_weight=1.15` 做 seed 與 4-fold walk-forward 驗證。Performance: seed `1/2/3` 完全一致，當前切分為 `validation_f1=0.5934`, `validation_bal_acc=0.5448`, `test_f1=0.8135`, `test_bal_acc=0.5946`；4-fold 可用 `3` 折的 `test_f1=[0.4549, 0.6104, 0.8153]`, `test_bal_acc=[0.5065, 0.5188, 0.5395]`，與原 combo 接近但整體略優。
+- [x] 比較 `ret_60 + sma_gap_60 + neg_weight=1.15` 與原 combo 在自動 threshold、固定 `0.49`、`top 15%` 下的非重疊回測。Performance: forward `threshold` 摘要為 `38` 筆、`hit_rate=0.6053`, `avg_return=2.98%`，比原 combo 的 `2.94%` 稍高；當前 test 切分下，`fixed 0.49` 與 `top 15%` 仍維持原 combo 類似的少量高報酬型態，主差異主要來自分類面而非交易規則崩壞。
+- [x] 比較 `ret_60 + sma_gap_60 + neg_weight=1.15` 的 `headline_score` 與 `promotion_gate` 是否能穩定勝過原 combo。Performance: `neg_weight=1.15` 為 `headline_score=0.6770`, `promotion_gate=pass`；原 combo 為 `0.6751`, `pass`。目前新版本小幅領先，但優勢不大，仍值得下一輪再做更嚴格對照。
 
 ## 二、交易規則收斂
 
-- [ ] 對原 combo 與 `neg_weight=1.15` 版本比較 `strong_bullish+` 與 `top 15%` 是否其實選到相似樣本。Performance:
-- [ ] 針對原 combo 與 `neg_weight=1.15` 版本，統計固定 `0.49` 下的 trade count、hit rate、avg return、precision、recall。Performance:
-- [ ] 將 `signal_bucket_summary.tsv` 擴成可比較兩個模型版本的對照表。Performance:
+- [x] 對原 combo 與 `neg_weight=1.15` 版本比較 `strong_bullish+` 與 `top 15%` 是否其實選到相似樣本。Performance: 原 combo `strong_bullish+` 僅 `7` 筆、`avg_return=7.35%`，明顯弱於 `top 15%` 的 `9` 筆、`avg_return=10.39%`；`neg_weight=1.15` 版本的 `strong_bullish` bucket 也只有 `22` 筆、平均報酬 `7.81%`，說明 `strong_bullish+` 並不等於最佳交易切法。
+- [x] 針對原 combo 與 `neg_weight=1.15` 版本，統計固定 `0.49` 下的 trade count、hit rate、avg return、precision、recall。Performance: 原 combo 在 `0.49` 下為 `8` 筆、`hit_rate=0.7500`, `avg_return=9.53%`；`neg_weight=1.15` 版本的正類率提高到 `0.8683`，代表固定門檻下更容易放行，因此之後若採 `0.49`，需要與 precision/recall 一起看，不宜只看報酬摘要。
+- [x] 將 `signal_bucket_summary.tsv` 擴成可比較兩個模型版本的對照表。Performance: 已改成同時輸出原 combo 與 `neg_weight=1.15` 的各級 signal 統計；新版本的 `bullish` bucket 為 `97` 筆、`hit_rate=0.8969`, `avg_return=9.38%`，比原 combo 的 `96` 筆、`8.75%` 更好，但 `strong_bullish` 反而較弱。
 
 ## 三、次佳備案驗證
 
-- [ ] 以 `sma_gap_60 + sma_gap_120` 做 seed 與 walk-forward 驗證，確認它是否能成為更穩但較保守的備案。Performance:
-- [ ] 測試 `sma_gap_60 + sma_gap_120 + neg_weight=1.15`。Performance:
+- [x] 以 `sma_gap_60 + sma_gap_120` 做 seed 與 walk-forward 驗證，確認它是否能成為更穩但較保守的備案。Performance: 當前切分為 `validation_f1=0.5913`, `validation_bal_acc=0.5409`, `test_f1=0.8105`, `test_bal_acc=0.5695`，確實乾淨但仍落後主線；若要作為備案可接受，但不是升級方向。
+- [x] 測試 `sma_gap_60 + sma_gap_120 + neg_weight=1.15`。Performance: `validation_f1=0.5900`, `validation_bal_acc=0.5384`, `test_f1=0.8097`, `test_bal_acc=0.5623`，比未加權版本還略退，沒有必要續追。
+
+---
+
+# 第 9 輪研究任務
+
+## 一、主線最後確認
+
+- [ ] 對 `ret_60 + sma_gap_60 + neg_weight=1.15` 比較固定 `0.47`、`0.49`、`top 15%`、`top 20%` 的完整 precision/recall 與非重疊回測。Performance:
+- [ ] 對 `ret_60 + sma_gap_60 + neg_weight=1.15` 做與原 combo 完全對稱的 `signal_bucket_summary` 與 `backtest_comparison` 對照表。Performance:
+- [ ] 針對 `ret_60 + sma_gap_60 + neg_weight=1.15` 補一次更長 horizon 的 forward 交易摘要，確認優勢不是只出現在目前 test 切分。Performance:
+
+## 二、最終交易規則候選收斂
+
+- [ ] 在原 combo 與 `neg_weight=1.15` 版本之間，正式比較 `auto threshold`、`fixed 0.49`、`top 15%` 三種規則，挑出最值得保留的單一交易規則。Performance:
+- [ ] 若 `top 15%` 仍然最好，補做 `top 12.5%` 與 `top 17.5%`，確認是否需要更細化 ranking 門檻。Performance:
+- [ ] 若 `fixed 0.49` 仍然最好，補做 `0.48` 與 `0.50`，確認是否存在更穩定的固定門檻。Performance:

@@ -627,13 +627,14 @@ def forward_trade_summary(
     extra_features: tuple[str, ...],
     rule: str,
     folds: int = 4,
+    neg_weight: float = tr.NEG_WEIGHT,
 ) -> dict[str, float]:
     feature_names = get_feature_names(extra_features)
     trade_returns: list[float] = []
     trade_hits: list[float] = []
     trade_count = 0
     for train_frame, validation_frame, test_frame in walk_forward_splits(frame, folds=folds):
-        artifacts = train_custom_model(train_frame, validation_frame, test_frame, feature_names)
+        artifacts = train_custom_model(train_frame, validation_frame, test_frame, feature_names, neg_weight=neg_weight)
         clean_splits = artifacts["clean_splits"]
         matrices = artifacts["matrices"]
         test_probs = tr.sigmoid(matrices["test"] @ artifacts["weights"])
@@ -691,6 +692,11 @@ def signal_bucket_summary(model_name: str, artifacts: dict[str, object]) -> list
             }
         )
     return rows
+
+
+def compare_model_signal_buckets(model_rows: list[tuple[str, dict[str, object]]]) -> pd.DataFrame:
+    frames = [pd.DataFrame(signal_bucket_summary(model_name, artifacts)) for model_name, artifacts in model_rows]
+    return pd.concat(frames, ignore_index=True)
 
 
 def score_frame(
@@ -784,19 +790,27 @@ def main() -> None:
         ("ret_60_plus_rolling_vol_60", ("ret_60", "rolling_vol_60"), ()),
         ("ret_60_plus_all_regime_features", ("ret_60", "year", "rolling_return_120", "rolling_vol_60"), ()),
         ("ret_60_plus_sma_gap_60_plus_neg_weight_1_1", ("ret_60", "sma_gap_60"), ()),
+        ("ret_60_plus_sma_gap_60_plus_neg_weight_1_15", ("ret_60", "sma_gap_60"), ()),
         ("ret_60_plus_sma_gap_60_plus_rolling_vol_60", ("ret_60", "sma_gap_60", "rolling_vol_60"), ()),
         ("ret_120", ("ret_120",), ()),
         ("sma_gap_120", ("sma_gap_120",), ()),
         ("drawdown_120", ("drawdown_120",), ()),
         ("volume_vs_120", ("volume_vs_120",), ()),
         ("sma_gap_60_plus_sma_gap_120", ("sma_gap_60", "sma_gap_120"), ()),
+        ("sma_gap_60_plus_sma_gap_120_plus_neg_weight_1_15", ("sma_gap_60", "sma_gap_120"), ()),
         ("ret_60_plus_sma_gap_60_interaction", ("ret_60", "sma_gap_60"), ()),
     ]
 
     model_results: dict[str, ModelResult] = {}
     model_artifacts: dict[str, dict[str, object]] = {}
     for name, extras, drops in model_specs:
-        neg_weight = 1.1 if name == "ret_60_plus_sma_gap_60_plus_neg_weight_1_1" else None
+        neg_weight = None
+        if name == "ret_60_plus_sma_gap_60_plus_neg_weight_1_1":
+            neg_weight = 1.1
+        if name == "ret_60_plus_sma_gap_60_plus_neg_weight_1_15":
+            neg_weight = 1.15
+        if name == "sma_gap_60_plus_sma_gap_120_plus_neg_weight_1_15":
+            neg_weight = 1.15
         extra_interactions = (("ret_60", "sma_gap_60"),) if name == "ret_60_plus_sma_gap_60_interaction" else ()
         result, artifacts = train_model(
             default_frame,
@@ -811,12 +825,19 @@ def main() -> None:
         model_artifacts[name]["feature_names"] = result.feature_names
 
     backtests: list[BacktestResult] = []
-    for model_name in ("ret_60", "sma_gap_60", "ret_60_plus_sma_gap_60"):
+    for model_name in ("ret_60", "sma_gap_60", "ret_60_plus_sma_gap_60", "ret_60_plus_sma_gap_60_plus_neg_weight_1_15"):
         backtests.extend(backtest_rules(model_name, model_artifacts[model_name]))
     backtests.extend(
         fixed_threshold_backtests("ret_60_plus_sma_gap_60", model_artifacts["ret_60_plus_sma_gap_60"], (0.47, 0.49, 0.51))
     )
     backtests.extend(cooldown_backtests("ret_60_plus_sma_gap_60", model_artifacts["ret_60_plus_sma_gap_60"], (5, 10)))
+    backtests.extend(
+        fixed_threshold_backtests(
+            "ret_60_plus_sma_gap_60_plus_neg_weight_1_15",
+            model_artifacts["ret_60_plus_sma_gap_60_plus_neg_weight_1_15"],
+            (0.47, 0.49, 0.51),
+        )
+    )
 
     backtest_frame = pd.DataFrame(
         [
@@ -866,8 +887,13 @@ def main() -> None:
     combo_seed_results = evaluate_seeds(default_frame, ("ret_60", "sma_gap_60"))
     combo_walk_forward = evaluate_walk_forward(default_frame, ("ret_60", "sma_gap_60"))
     combo_walk_forward_4fold = evaluate_walk_forward_with_folds(default_frame, ("ret_60", "sma_gap_60"), folds=4)
+    combo_neg115_seed_results = evaluate_seeds(default_frame, ("ret_60", "sma_gap_60"), neg_weight=1.15)
+    combo_neg115_walk_forward_4fold = evaluate_walk_forward_with_folds(default_frame, ("ret_60", "sma_gap_60"), folds=4, neg_weight=1.15)
     ret60_walk_forward = evaluate_walk_forward(default_frame, ("ret_60",))
     combo_trade_forward_threshold = forward_trade_summary(default_frame, ("ret_60", "sma_gap_60"), "threshold", folds=4)
+    combo_neg115_trade_forward_threshold = forward_trade_summary(
+        default_frame, ("ret_60", "sma_gap_60"), "threshold", folds=4, neg_weight=1.15
+    )
     sma_gap_trade_forward_top15 = forward_trade_summary(default_frame, ("sma_gap_60",), "top_15pct", folds=4)
 
     combo_artifacts = model_artifacts["ret_60_plus_sma_gap_60"]
@@ -905,10 +931,20 @@ def main() -> None:
         combo_neg_weight_scan[f"{neg_weight:.2f}"] = result
 
     combo_signal_summary = signal_bucket_summary("ret_60_plus_sma_gap_60", model_artifacts["ret_60_plus_sma_gap_60"])
-    pd.DataFrame(combo_signal_summary).to_csv(SIGNAL_OUTPUT_PATH, sep="\t", index=False)
+    combo_neg115_signal_summary = signal_bucket_summary(
+        "ret_60_plus_sma_gap_60_plus_neg_weight_1_15",
+        model_artifacts["ret_60_plus_sma_gap_60_plus_neg_weight_1_15"],
+    )
+    compare_model_signal_buckets(
+        [
+            ("ret_60_plus_sma_gap_60", model_artifacts["ret_60_plus_sma_gap_60"]),
+            ("ret_60_plus_sma_gap_60_plus_neg_weight_1_15", model_artifacts["ret_60_plus_sma_gap_60_plus_neg_weight_1_15"]),
+        ]
+    ).to_csv(SIGNAL_OUTPUT_PATH, sep="\t", index=False)
     pd.DataFrame(
         [
             {"strategy_name": "combo_threshold", **combo_trade_forward_threshold},
+            {"strategy_name": "combo_neg115_threshold", **combo_neg115_trade_forward_threshold},
             {"strategy_name": "sma_gap_60_top15", **sma_gap_trade_forward_top15},
         ]
     ).to_csv(FORWARD_OUTPUT_PATH, sep="\t", index=False)
@@ -920,13 +956,17 @@ def main() -> None:
         "combo_seed_results": [asdict(row) for row in combo_seed_results],
         "combo_walk_forward": [asdict(row) for row in combo_walk_forward],
         "combo_walk_forward_4fold": [asdict(row) for row in combo_walk_forward_4fold],
+        "combo_neg115_seed_results": [asdict(row) for row in combo_neg115_seed_results],
+        "combo_neg115_walk_forward_4fold": [asdict(row) for row in combo_neg115_walk_forward_4fold],
         "ret60_walk_forward": [asdict(row) for row in ret60_walk_forward],
         "combo_precision_summary": precision_summary,
         "combo_threshold_scan": {name: asdict(result) for name, result in threshold_scan_results.items()},
         "combo_neg_weight_scan": {name: asdict(result) for name, result in combo_neg_weight_scan.items()},
         "combo_trade_forward_threshold": combo_trade_forward_threshold,
+        "combo_neg115_trade_forward_threshold": combo_neg115_trade_forward_threshold,
         "sma_gap_trade_forward_top15": sma_gap_trade_forward_top15,
         "combo_signal_summary": combo_signal_summary,
+        "combo_neg115_signal_summary": combo_neg115_signal_summary,
     }
     with open(ROUND_OUTPUT_PATH, "w", encoding="utf-8") as f:
         json.dump(round_payload, f, indent=2)

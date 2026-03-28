@@ -44,8 +44,9 @@ ecddabe	0.5813	0.4233	0.5192	0.8087	0.7044	0.5852	0.6672	fail	discard	adding rol
 ecddabe	0.5724	0.4018	0.5013	0.8062	0.6753	0.5000	0.6371	fail	discard	ret_120 collapses toward all-positive behavior and chance balanced accuracy
 ecddabe	0.5831	0.4387	0.5288	0.8077	0.6953	0.5588	0.6602	pass	discard	sma_gap_120 is milder than ret_120 but still weaker than sma_gap_60 and the combo
 ecddabe	0.6074	0.4985	0.5767	0.7304	0.6417	0.6000	0.6513	pass	discard	ret_60:sma_gap_60 interaction overfits validation and breaks test f1
-07bef55	0.5931	0.4571	0.5454	0.8028	0.6998	0.5892	0.6711	pass	discard	ret_60 plus sma_gap_60 with neg_weight=1.05 stays below the combo on test f1 and balanced accuracy
-07bef55	0.5934	0.4555	0.5448	0.8135	0.7121	0.5946	0.6770	pass	keep	ret_60 plus sma_gap_60 with neg_weight=1.15 becomes the strongest current overall candidate under the test-weighted headline score
-07bef55	0.5841	0.4387	0.5294	0.8030	0.6830	0.5351	0.6527	fail	discard	drawdown_120 adds a mild long-window pullback feature but weakens test balance materially
-07bef55	0.5843	0.4325	0.5262	0.8068	0.6876	0.5372	0.6544	fail	discard	volume_vs_120 does not improve on existing 60-day volume or combo leaders
-07bef55	0.5913	0.4509	0.5409	0.8105	0.7014	0.5695	0.6700	pass	discard	sma_gap_60 plus sma_gap_120 is respectable but still weaker than the ret_60 plus sma_gap_60 combo
+07bef55	0.5931	0.4571	0.5454	0.8028	0.6998	0.5892	0.6710	pass	discard	ret_60 plus sma_gap_60 with neg_weight=1.05 stays below the combo on test f1 and balanced accuracy
+07bef55	0.5934	0.4555	0.5448	0.8135	0.7121	0.5946	0.6769	pass	keep	ret_60 plus sma_gap_60 with neg_weight=1.15 becomes the strongest current overall candidate under the test-weighted headline score
+07bef55	0.5841	0.4387	0.5294	0.8030	0.6830	0.5351	0.6515	fail	discard	drawdown_120 adds a mild long-window pullback feature but weakens test balance materially
+07bef55	0.5843	0.4325	0.5262	0.8068	0.6876	0.5372	0.6534	fail	discard	volume_vs_120 does not improve on existing 60-day volume or combo leaders
+07bef55	0.5913	0.4509	0.5409	0.8105	0.7014	0.5695	0.6674	pass	discard	sma_gap_60 plus sma_gap_120 is respectable but still weaker than the ret_60 plus sma_gap_60 combo
+e8f82bb	0.5900	0.4479	0.5384	0.8097	0.6983	0.5623	0.6644	pass	discard	sma_gap_60 plus sma_gap_120 with neg_weight=1.15 remains a viable backup but does not beat the ret_60 plus sma_gap_60 line
