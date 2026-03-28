@@ -402,9 +402,21 @@
 # 第 16 輪研究任務
 ## cross-asset 偏差修正
 
-- [ ] 對 `ret_60 + sma_gap_60 + gld_vs_gdx_20` 測 `neg_weight=1.15`，確認是否能壓低 early-fold 的 all-positive 偏差。Performance:
-- [ ] 對 `ret_60 + sma_gap_60 + distance_to_252_high + gld_vs_gdx_20` 測 `neg_weight=1.15`，確認高上限版本能否在不犧牲太多 test_f1 的情況下提高 walk-forward balance。Performance:
-- [ ] 若 `neg_weight=1.15` 仍不足，再對 `GDX` 單獨版與 `distance + GDX` 版測 `neg_weight=1.30`。Performance:
+- [x] 對 `ret_60 + sma_gap_60 + gld_vs_gdx_20` 測 `neg_weight=1.15`，確認是否能壓低 early-fold 的 all-positive 偏差。Performance: `validation_f1=0.5360`, `validation_bal_acc=0.5445`, `test_f1=0.8133`, `test_bal_acc=0.5942`, `headline_score=0.6652`。walk-forward 前兩折從原本的 `0.4964/0.5000` 小幅變成 `0.4964/0.5051`，偏差只被輕微壓住，仍不足以升級。
+- [x] 對 `ret_60 + sma_gap_60 + distance_to_252_high + gld_vs_gdx_20` 測 `neg_weight=1.15`，確認高上限版本能否在不犧牲太多 test_f1 的情況下提高 walk-forward balance。Performance: `validation_f1=0.5258`, `validation_bal_acc=0.5278`, `test_f1=0.8240`, `test_bal_acc=0.5969`, `headline_score=0.6666`。fold1 的 `test_bal_acc` 從 `0.4995` 小升到 `0.5057`，但 fold2 仍停在 `0.5000`，說明這條線仍是高上限候選，不是已解決偏差的新主線。
+- [x] 若 `neg_weight=1.15` 仍不足，再對 `GDX` 單獨版與 `distance + GDX` 版測 `neg_weight=1.30`。Performance: `GDX` 單獨版為 `validation_f1=0.5367`, `validation_bal_acc=0.5458`, `test_f1=0.8120`, `test_bal_acc=0.5930`, `headline_score=0.6646`；`distance + GDX` 則為 `0.5258`, `0.5278`, `0.8244`, `0.5954`, `0.6663`。兩者都沒有比 `1.15` 更好，walk-forward 偏差也沒有明顯再改善，因此 `1.30` 可以停止。
 
 ## 規則收斂
-- [ ] 針對通過 bias 修正後的最佳 `GDX` 版本，比較 `top 15%` / `top 17.5%` / `top 20%` 的 walk-forward 交易摘要。Performance:
+- [x] 針對通過 bias 修正後的最佳 `GDX` 版本，比較 `top 15%` / `top 17.5%` / `top 20%` 的 walk-forward 交易摘要。Performance: 以 `distance + GDX + neg_weight=1.15` 當作最佳修正版時，walk-forward `avg_return` 為 `top 15%=4.11%`, `top 17.5%=4.84%`, `top 20%=4.17%`，其中 `top 17.5%` 最佳；若用 `1.30`，則為 `4.29% / 4.91% / 4.13%`，排序仍是 `17.5%` 最好。也就是說，規則面最值得保留的是 `GDX` 線的 `top 17.5%`，但模型面本身仍未通過穩定性檢查。
+
+---
+
+# 第 17 輪研究任務
+## cross-asset 新訊號窗格
+
+- [ ] 測試 `gld_vs_gdx_60`，確認較長的 cross-asset 相對強弱是否比 `20d` 更不容易在 early folds 崩成 all-positive。Performance:
+- [ ] 測試 `ret_60 + sma_gap_60 + gld_vs_gdx_60`，確認長窗 GDX 單獨加成是否比 `gld_vs_gdx_20` 更穩。Performance:
+- [ ] 測試 `ret_60 + sma_gap_60 + distance_to_252_high + gld_vs_gdx_60`，確認高上限版本是否能保住 test_f1 同時改善 walk-forward balance。Performance:
+
+## 規則延伸
+- [ ] 若 `gld_vs_gdx_60` 路線站得住，對最佳版本補做 `top 15%` / `top 17.5%` / `top 20%` 規則摘要。Performance:
