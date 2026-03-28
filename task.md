@@ -367,3 +367,18 @@
 ## 二、交易規則與新 input 交叉驗證
 
 - [ ] 若 `distance_to_252_high` 或 `atr_pct_20` 在模型面站得住，補做 `top 15%` 與 `top 20%` 規則比較，確認它們提升的是模型品質還是交易摘要。Performance:
+
+---
+
+# 第 14 輪研究任務
+
+## 一、第二批 datasource 擴充
+
+- [ ] 加入 `DXY` datasource，先做 `gld_vs_dxy_20` 或等價美元相對強弱特徵，檢查美元方向是否能提供黃金外部 context。Performance:
+- [ ] 加入 `TLT` datasource，先做 `gld_vs_tlt_20` 或等價債券相對強弱特徵，檢查利率 / 債券方向是否能補足 GLD 單體訊號。Performance:
+- [ ] 加入 `GDX` datasource，先做 `gld_vs_gdx_20` 或等價金礦股相對強弱特徵，檢查金礦股是否能領先反映金價趨勢。Performance:
+- [ ] 加入 `SLV` datasource，先做 `slv_gld_ratio_20` 或等價白銀 / 黃金相對強弱特徵，檢查貴金屬內部輪動是否有額外資訊。Performance:
+
+## 二、datasource 收斂
+
+- [ ] 從 `DXY / TLT / GDX / SLV` 四個新 datasource 中保留前 1 到 2 名，再與 `ret_60 + sma_gap_60 + distance_to_252_high` 或 `atr_pct_20` 主線組合比較。Performance:
