@@ -335,3 +335,21 @@
 ## 二、模型主線保守追蹤
 
 - [ ] 在 `ret_60 + sma_gap_60 + neg_weight=1.15` 上只做極小範圍的 `neg_weight=1.12`、`1.18` 檢查，確認 `1.15` 是否真的是局部最佳。Performance:
+
+---
+
+# 第 12 輪研究任務
+
+## 一、新 input 擴充首輪
+
+- [ ] 加入 `distance_to_252_high`，先單獨與目前 baseline / combo 比較，確認長週期位置資訊是否有額外訊號。Performance:
+- [ ] 加入 `close_location_20`，檢查收盤在近 20 日區間中的相對位置是否能補足現有 return / drawdown 特徵。Performance:
+- [ ] 加入 `up_day_ratio_20`，檢查近 20 日上漲天數比例是否能提供比 `ret_20` 更穩的結構資訊。Performance:
+- [ ] 加入 `above_200dma_flag`，檢查是否能改善現有 regime shift 問題。Performance:
+- [ ] 加入 `atr_pct_20`，檢查波動狀態資訊是否能改善泛化。Performance:
+- [ ] 加入 `gld_vs_spy_20`，檢查跨資產相對強弱是否能提供現有純 GLD 特徵沒有的資訊。Performance:
+
+## 二、新 input 收斂
+
+- [ ] 從上述 6 個新 input 中保留前 2 名，再各自與 `ret_60 + sma_gap_60` 組合比較。Performance:
+- [ ] 若新 input 中有特別偏交易規則的一項，補做 `top 15%` 規則比較，確認它改善的是模型分數還是交易摘要。Performance:
