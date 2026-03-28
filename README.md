@@ -38,10 +38,8 @@ This framing is closer to a real swing-trade entry decision:
 - [predict_latest.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/predict_latest.py): scores the latest raw GLD bar without waiting for future labels
 - [chart_signals.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/chart_signals.py): exports an HTML chart of recent closes colored by live signal
 - [research_batch.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/research_batch.py): runs the current formal research batch and writes compact TSV/JSON summaries
-- [research_binary_round3.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/research_binary_round3.py): compares threshold vs `top_20pct` for the live model and the `rolling_vol_60` candidate across test, walk-forward, and recent-5-year non-overlap returns
 - [score_results.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/score_results.py): refreshes `headline_score` and `promotion_gate` in `results.tsv`
 - [results.tsv](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/results.tsv): experiment log
-- [binary_round3_rule_decision.tsv](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/binary_round3_rule_decision.tsv): current rule-level decision table for `threshold` vs `top_20pct`
 - [task.md](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/task.md): next research tasks
 
 ## Default target settings
@@ -60,7 +58,6 @@ python train.py
 python predict_latest.py
 python chart_signals.py
 python research_batch.py
-python research_binary_round3.py
 ```
 
 ## Notes
