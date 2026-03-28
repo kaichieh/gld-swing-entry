@@ -2,6 +2,17 @@
 
 This repo predicts medium-term GLD entry quality instead of short-term direction.
 
+## How To Work In This Repo
+
+This repo should be operated primarily by following [program.md](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/program.md).
+
+In practice:
+
+- read `program.md` first
+- execute the current round of tasks from `task.md`
+- record all formal experiment results in `results.tsv`
+- use `ideas.md` to break down the next round of tasks
+
 ## Goal
 
 The default target is:
