@@ -27,14 +27,12 @@ LABEL_MODE = "drop-neutral"
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 CACHE_DIR = os.path.join(REPO_DIR, ".cache", "gld-swing-entry")
 RAW_DATA_PATH = os.path.join(CACHE_DIR, "gld_daily.csv")
+SPY_RAW_DATA_PATH = os.path.join(CACHE_DIR, "spy_daily.csv")
 PROCESSED_DATA_PATH = os.path.join(CACHE_DIR, "gld_features.csv")
 METADATA_PATH = os.path.join(CACHE_DIR, "metadata.json")
 
 GLD_STOOQ_URL = "https://stooq.com/q/d/l/?s=gld.us&i=d"
-GLD_YAHOO_CHART_URL = (
-    "https://query1.finance.yahoo.com/v8/finance/chart/GLD"
-    "?period1=0&period2=9999999999&interval=1d&includePrePost=false&events=div%2Csplits"
-)
+SPY_STOOQ_URL = "https://stooq.com/q/d/l/?s=spy.us&i=d"
 TARGET_COLUMN = "target_hit_up_first"
 
 FEATURE_COLUMNS = [
@@ -70,6 +68,12 @@ EXPERIMENTAL_FEATURE_COLUMNS = [
     "gap_down_flag",
     "inside_bar",
     "outside_bar",
+    "distance_to_252_high",
+    "close_location_20",
+    "up_day_ratio_20",
+    "above_200dma_flag",
+    "atr_pct_20",
+    "gld_vs_spy_20",
 ]
 
 
@@ -121,8 +125,15 @@ def normalize_ohlcv_frame(frame: pd.DataFrame) -> pd.DataFrame:
     return normalized
 
 
-def download_gld_prices_from_yahoo(session: requests.Session) -> pd.DataFrame:
-    response = session.get(GLD_YAHOO_CHART_URL, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
+def yahoo_chart_url(symbol: str) -> str:
+    return (
+        f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+        "?period1=0&period2=9999999999&interval=1d&includePrePost=false&events=div%2Csplits"
+    )
+
+
+def download_prices_from_yahoo(session: requests.Session, symbol: str) -> pd.DataFrame:
+    response = session.get(yahoo_chart_url(symbol), timeout=30, headers={"User-Agent": "Mozilla/5.0"})
     response.raise_for_status()
     payload = response.json()
     result = payload["chart"]["result"][0]
@@ -143,34 +154,79 @@ def download_gld_prices_from_yahoo(session: requests.Session) -> pd.DataFrame:
     return normalize_ohlcv_frame(frame)
 
 
-def download_gld_prices_from_stooq(session: requests.Session) -> pd.DataFrame:
-    response = session.get(GLD_STOOQ_URL, timeout=30)
+def download_prices_from_stooq(session: requests.Session, url: str, cache_path: str) -> pd.DataFrame:
+    response = session.get(url, timeout=30)
     response.raise_for_status()
-    with open(RAW_DATA_PATH, "w", encoding="utf-8", newline="") as f:
+    with open(cache_path, "w", encoding="utf-8", newline="") as f:
         f.write(response.text)
-    frame = pd.read_csv(RAW_DATA_PATH)
+    frame = pd.read_csv(cache_path)
     if frame.empty:
         raise RuntimeError("Downloaded GLD dataset from stooq is empty.")
     return normalize_ohlcv_frame(frame)
 
 
-def download_gld_prices() -> pd.DataFrame:
+def download_symbol_prices(symbol: str, stooq_url: str, cache_path: str) -> pd.DataFrame:
     ensure_cache_dir()
     session = requests.Session()
     try:
-        frame = download_gld_prices_from_yahoo(session)
+        frame = download_prices_from_yahoo(session, symbol)
     except Exception:
         try:
-            frame = download_gld_prices_from_stooq(session)
+            frame = download_prices_from_stooq(session, stooq_url, cache_path)
         except Exception:
-            if not os.path.exists(RAW_DATA_PATH):
+            if not os.path.exists(cache_path):
                 raise
-            frame = pd.read_csv(RAW_DATA_PATH)
+            frame = pd.read_csv(cache_path)
             if frame.empty:
-                raise RuntimeError("Cached GLD dataset is empty.")
+                raise RuntimeError(f"Cached {symbol} dataset is empty.")
             frame = normalize_ohlcv_frame(frame)
-    frame.to_csv(RAW_DATA_PATH, index=False)
+    frame.to_csv(cache_path, index=False)
     return frame
+
+
+def download_gld_prices() -> pd.DataFrame:
+    return download_symbol_prices("GLD", GLD_STOOQ_URL, RAW_DATA_PATH)
+
+
+def download_spy_prices() -> pd.DataFrame:
+    return download_symbol_prices("SPY", SPY_STOOQ_URL, SPY_RAW_DATA_PATH)
+
+
+def add_context_features(frame: pd.DataFrame, spy_frame: pd.DataFrame | None = None) -> pd.DataFrame:
+    df = frame.copy()
+    close = df["close"]
+    high = df["high"]
+    low = df["low"]
+    eps = 1e-6
+
+    rolling_high_252 = close.rolling(252).max()
+    rolling_high_20 = high.rolling(20).max()
+    rolling_low_20 = low.rolling(20).min()
+
+    df["distance_to_252_high"] = close / rolling_high_252 - 1.0
+    df["close_location_20"] = (close - rolling_low_20) / (rolling_high_20 - rolling_low_20 + eps)
+    df["up_day_ratio_20"] = (df["ret_1"] > 0).astype(float).rolling(20).mean()
+    df["above_200dma_flag"] = (close > close.rolling(200).mean()).astype(float)
+
+    true_range = pd.concat(
+        [
+            (high - low),
+            (high - close.shift(1)).abs(),
+            (low - close.shift(1)).abs(),
+        ],
+        axis=1,
+    ).max(axis=1)
+    df["atr_pct_20"] = true_range.rolling(20).mean() / close
+
+    if spy_frame is not None:
+        spy_close = spy_frame[["date", "close"]].rename(columns={"close": "spy_close"})
+        df = df.merge(spy_close, on="date", how="left")
+        relative_ratio = df["close"] / df["spy_close"]
+        df["gld_vs_spy_20"] = relative_ratio.pct_change(20)
+        df = df.drop(columns=["spy_close"])
+    else:
+        df["gld_vs_spy_20"] = np.nan
+    return df
 
 
 def build_barrier_labels(
@@ -286,7 +342,9 @@ def add_price_features(frame: pd.DataFrame) -> pd.DataFrame:
 
 def add_features(frame: pd.DataFrame) -> pd.DataFrame:
     config = get_runtime_config()
+    spy_frame = download_spy_prices()
     df = add_price_features(frame)
+    df = add_context_features(df, spy_frame=spy_frame)
     labels, realized_returns = build_barrier_labels(
         df,
         int(config["horizon_days"]),

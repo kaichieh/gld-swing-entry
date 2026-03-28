@@ -329,12 +329,12 @@
 
 ## 一、交易主線最後收斂
 
-- [ ] 以原 combo `top 15%` 為主，補做 `top 14%`、`top 16%`，確認最佳 ranking 門檻是否已在局部最優附近。Performance:
-- [ ] 對原 combo `top 15%` 與 `neg_weight=1.15 top 20%` 做同一套 walk-forward 與 test 對照摘要，決定是否正式把交易主線固定成原 combo ranking。Performance:
+- [x] 以原 combo `top 15%` 為主，補做 `top 14%`、`top 16%`，確認最佳 ranking 門檻是否已在局部最優附近。Performance: `top 14%` walk-forward `avg_return=3.50%`、`top 15%=3.44%`、`top 16%=3.29%`；test 非重疊回測則 `top 15%`/`16%` 同為 `8.93%`，但 `top 14%` 只剩 `7.65%`。整體看最佳點就在 `14%~15%` 附近，沒有必要再往更寬的 ranking 門檻延伸。
+- [x] 對原 combo `top 15%` 與 `neg_weight=1.15 top 20%` 做同一套 walk-forward 與 test 對照摘要，決定是否正式把交易主線固定成原 combo ranking。Performance: 原 combo `top 15%` 的 walk-forward 為 `trade_count=27`, `hit_rate=0.6667`, `avg_return=3.44%`；`neg_weight=1.15 top 20%` 則是 `31` 筆、`0.6129`, `3.99%`，但 test 非重疊回測上原 combo `top 15%` 仍較穩，`avg_return=8.93%` 對 `9.75%` 且正類率更受控。結論是交易主線仍偏向原 combo ranking，但 `neg_weight=1.15 top 20%` 值得保留成較積極備案。
 
 ## 二、模型主線保守追蹤
 
-- [ ] 在 `ret_60 + sma_gap_60 + neg_weight=1.15` 上只做極小範圍的 `neg_weight=1.12`、`1.18` 檢查，確認 `1.15` 是否真的是局部最佳。Performance:
+- [x] 在 `ret_60 + sma_gap_60 + neg_weight=1.15` 上只做極小範圍的 `neg_weight=1.12`、`1.18` 檢查，確認 `1.15` 是否真的是局部最佳。Performance: `neg_weight=1.12` 為 `validation_f1=0.5950`, `validation_bal_acc=0.5533`, `test_f1=0.8124`, `test_bal_acc=0.5935`；`1.18` 為 `0.5957`, `0.5546`, `0.8124`, `0.5935`。兩者都沒有明顯超過目前 `neg_weight=1.15` / 新 cohort combo，說明局部最優已經非常平。
 
 ---
 
@@ -342,14 +342,28 @@
 
 ## 一、新 input 擴充首輪
 
-- [ ] 加入 `distance_to_252_high`，先單獨與目前 baseline / combo 比較，確認長週期位置資訊是否有額外訊號。Performance:
-- [ ] 加入 `close_location_20`，檢查收盤在近 20 日區間中的相對位置是否能補足現有 return / drawdown 特徵。Performance:
-- [ ] 加入 `up_day_ratio_20`，檢查近 20 日上漲天數比例是否能提供比 `ret_20` 更穩的結構資訊。Performance:
-- [ ] 加入 `above_200dma_flag`，檢查是否能改善現有 regime shift 問題。Performance:
-- [ ] 加入 `atr_pct_20`，檢查波動狀態資訊是否能改善泛化。Performance:
-- [ ] 加入 `gld_vs_spy_20`，檢查跨資產相對強弱是否能提供現有純 GLD 特徵沒有的資訊。Performance:
+- [x] 加入 `distance_to_252_high`，先單獨與目前 baseline / combo 比較，確認長週期位置資訊是否有額外訊號。Performance: 單獨版本為 `validation_f1=0.5721`, `validation_bal_acc=0.5105`, `test_f1=0.8031`, `test_bal_acc=0.5200`，單獨不強；但加到 combo 後變成 `validation_f1=0.5847`, `validation_bal_acc=0.5387`, `test_f1=0.8204`, `test_bal_acc=0.5979`，是本輪最強的新 input 加成候選。
+- [x] 加入 `close_location_20`，檢查收盤在近 20 日區間中的相對位置是否能補足現有 return / drawdown 特徵。Performance: 單獨版本為 `validation_f1=0.5853`, `validation_bal_acc=0.5374`, `test_f1=0.8091`, `test_bal_acc=0.5463`；加到 combo 後 validation 衝到 `0.6010 / 0.5696`，但 `test_f1=0.7886` 明顯退化，屬於新的 validation 型強者。
+- [x] 加入 `up_day_ratio_20`，檢查近 20 日上漲天數比例是否能提供比 `ret_20` 更穩的結構資訊。Performance: 單獨版本為 `validation_f1=0.5788`, `validation_bal_acc=0.5262`, `test_f1=0.8110`, `test_bal_acc=0.5449`；加到 combo 後為 `validation_f1=0.5878`, `validation_bal_acc=0.5433`, `test_f1=0.8116`, `test_bal_acc=0.5962`，屬於乾淨的次佳組合。
+- [x] 加入 `above_200dma_flag`，檢查是否能改善現有 regime shift 問題。Performance: 單獨版本直接退化成全正類，`validation_bal_acc=0.5000`, `test_bal_acc=0.5000`；加到 combo 後也只有 `test_bal_acc=0.5192`，沒有解 regime 問題。
+- [x] 加入 `atr_pct_20`，檢查波動狀態資訊是否能改善泛化。Performance: 單獨版本為 `validation_f1=0.5805`, `validation_bal_acc=0.5282`, `test_f1=0.8115`, `test_bal_acc=0.5487`；加到 combo 後為 `validation_f1=0.5915`, `validation_bal_acc=0.5525`, `test_f1=0.8096`, `test_bal_acc=0.6028`，balanced accuracy 本輪最佳，是第二個值得追的候選。
+- [x] 加入 `gld_vs_spy_20`，檢查跨資產相對強弱是否能提供現有純 GLD 特徵沒有的資訊。Performance: 單獨版本 `test_f1=0.8139` 看起來亮眼，但 `validation_bal_acc=0.5039`, `test_bal_acc=0.5292` 很弱；加到 combo 後更是掉到 `test_f1=0.7593`，暫不續追。
 
 ## 二、新 input 收斂
 
-- [ ] 從上述 6 個新 input 中保留前 2 名，再各自與 `ret_60 + sma_gap_60` 組合比較。Performance:
-- [ ] 若新 input 中有特別偏交易規則的一項，補做 `top 15%` 規則比較，確認它改善的是模型分數還是交易摘要。Performance:
+- [x] 從上述 6 個新 input 中保留前 2 名，再各自與 `ret_60 + sma_gap_60` 組合比較。Performance: 目前保留的前 2 名是 `distance_to_252_high` 與 `atr_pct_20`；前者拉高 `test_f1/test_bal_acc` 到 `0.8204/0.5979`，後者把 `test_bal_acc` 拉到 `0.6028`，兩者都比 `close_location_20`、`gld_vs_spy_20` 更健康。
+- [x] 若新 input 中有特別偏交易規則的一項，補做 `top 15%` 規則比較，確認它改善的是模型分數還是交易摘要。Performance: 本輪先以模型分數篩選，新 input 還沒有正式進入交易規則比較；但 `distance_to_252_high` 與 `atr_pct_20` 都屬於「模型面有效」而不是單純靠 ranking 規則撐起來，下一輪才值得做 `top 15%` 實測。
+
+---
+
+# 第 13 輪研究任務
+
+## 一、新 input 候選深化
+
+- [ ] 對 `ret_60 + sma_gap_60 + distance_to_252_high` 做 seed 與 walk-forward 驗證，確認它是否能正式超過目前主線。Performance:
+- [ ] 對 `ret_60 + sma_gap_60 + atr_pct_20` 做 seed 與 walk-forward 驗證，確認高 balanced accuracy 是否穩定。Performance:
+- [ ] 對 `ret_60 + sma_gap_60 + up_day_ratio_20` 做快速複驗，確認它是否是值得保留的第三候選。Performance:
+
+## 二、交易規則與新 input 交叉驗證
+
+- [ ] 若 `distance_to_252_high` 或 `atr_pct_20` 在模型面站得住，補做 `top 15%` 與 `top 20%` 規則比較，確認它們提升的是模型品質還是交易摘要。Performance:

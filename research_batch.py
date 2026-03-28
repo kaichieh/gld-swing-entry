@@ -133,7 +133,9 @@ def build_labeled_frame(
     lower_barrier: float = -0.04,
     label_mode: str = "drop-neutral",
 ) -> pd.DataFrame:
+    spy_raw = pr.download_spy_prices()
     df = pr.add_price_features(raw)
+    df = pr.add_context_features(df, spy_frame=spy_raw)
     df = add_regime_features(df)
     labels, realized_returns = pr.build_barrier_labels(df, horizon_days, upper_barrier, lower_barrier)
     if label_mode == "keep-all-binary":
@@ -840,6 +842,18 @@ def main() -> None:
         ("volume_vs_120", ("volume_vs_120",), ()),
         ("sma_gap_60_plus_sma_gap_120", ("sma_gap_60", "sma_gap_120"), ()),
         ("sma_gap_60_plus_sma_gap_120_plus_neg_weight_1_15", ("sma_gap_60", "sma_gap_120"), ()),
+        ("distance_to_252_high", ("distance_to_252_high",), ()),
+        ("close_location_20", ("close_location_20",), ()),
+        ("up_day_ratio_20", ("up_day_ratio_20",), ()),
+        ("above_200dma_flag", ("above_200dma_flag",), ()),
+        ("atr_pct_20", ("atr_pct_20",), ()),
+        ("gld_vs_spy_20", ("gld_vs_spy_20",), ()),
+        ("ret_60_plus_sma_gap_60_plus_distance_to_252_high", ("ret_60", "sma_gap_60", "distance_to_252_high"), ()),
+        ("ret_60_plus_sma_gap_60_plus_close_location_20", ("ret_60", "sma_gap_60", "close_location_20"), ()),
+        ("ret_60_plus_sma_gap_60_plus_up_day_ratio_20", ("ret_60", "sma_gap_60", "up_day_ratio_20"), ()),
+        ("ret_60_plus_sma_gap_60_plus_above_200dma_flag", ("ret_60", "sma_gap_60", "above_200dma_flag"), ()),
+        ("ret_60_plus_sma_gap_60_plus_atr_pct_20", ("ret_60", "sma_gap_60", "atr_pct_20"), ()),
+        ("ret_60_plus_sma_gap_60_plus_gld_vs_spy_20", ("ret_60", "sma_gap_60", "gld_vs_spy_20"), ()),
         ("ret_60_plus_sma_gap_60_interaction", ("ret_60", "sma_gap_60"), ()),
     ]
 
