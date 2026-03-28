@@ -389,10 +389,22 @@
 
 ## 一、最強 cross-asset 候選深化
 
-- [ ] 對 `ret_60 + sma_gap_60 + distance_to_252_high + gld_vs_gdx_20` 做 seed 與 walk-forward 驗證，確認它是否是真正的新主線候選。Performance:
-- [ ] 對 `ret_60 + sma_gap_60 + gld_vs_gdx_20` 做 seed 與 walk-forward 驗證，確認 `GDX` 單獨加成是否比 `distance + GDX` 更穩。Performance:
-- [ ] 對 `ret_60 + sma_gap_60 + distance_to_252_high + gld_vs_tlt_20` 做快速複驗，確認 `TLT` 是否只是高 test_f1 偶然值。Performance:
+- [x] 對 `ret_60 + sma_gap_60 + distance_to_252_high + gld_vs_gdx_20` 做 seed 與 walk-forward 驗證，確認它是否是真正的新主線候選。Performance: seed `1/2/3` 完全一致，`validation_f1=0.5258`, `validation_bal_acc=0.5278`, `test_f1=0.8249`, `test_bal_acc=0.5996`；但 4-fold walk-forward 前兩折仍掉到 `test_bal_acc=0.4995/0.5000` 且 `test_positive_rate=0.9938/1.0000`，只有第三折站得住，說明它仍是高上限 cross-asset 候選，但還不是正式新主線。
+- [x] 對 `ret_60 + sma_gap_60 + gld_vs_gdx_20` 做 seed 與 walk-forward 驗證，確認 `GDX` 單獨加成是否比 `distance + GDX` 更穩。Performance: seed `1/2/3` 也完全一致，`validation_f1=0.5367`, `validation_bal_acc=0.5458`, `test_f1=0.8134`, `test_bal_acc=0.6000`；walk-forward 同樣在前兩折掉到 `test_bal_acc=0.4964/0.5000`，但第三折 `test_f1=0.7955`, `test_bal_acc=0.5927`，整體比 `distance + GDX` 稍穩、但仍未解決早期 regime 的 all-positive 問題。
+- [x] 對 `ret_60 + sma_gap_60 + distance_to_252_high + gld_vs_tlt_20` 做快速複驗，確認 `TLT` 是否只是高 test_f1 偶然值。Performance: seed `1/2/3` 一致，`validation_f1=0.5225`, `validation_bal_acc=0.5242`, `test_f1=0.8261`, `test_bal_acc=0.5951`；雖然 test_f1 是這組裡最高，但 walk-forward 仍有 `test_bal_acc=0.4962/0.4923/0.5864` 的明顯不穩，forward `top 15%/20%` 平均報酬只剩 `3.36%/3.18%`，弱於 `distance + GDX`。
 
 ## 二、交易規則最後交叉驗證
 
-- [ ] 若 `distance + GDX` 或 `GDX` 單獨加成站得住，補做 `top 15%` 與 `top 20%` 規則比較，確認 cross-asset 改善的是模型面還是交易面。Performance:
+- [x] 若 `distance + GDX` 或 `GDX` 單獨加成站得住，補做 `top 15%` 與 `top 20%` 規則比較，確認 cross-asset 改善的是模型面還是交易面。Performance: test 端 `distance + GDX` 的 `top 20%` 最亮眼，`avg_return=11.26%`, `hit_rate=0.7500`, `max_drawdown_compound=-2.75%`；但 walk-forward 則是 `top 15%=4.56%` 優於 `top 20%=3.89%`。`GDX` 單獨加成在 test 也不差，`top 20%=11.06%`, `hit_rate=0.7778`，但 walk-forward 只有 `4.15%`，所以目前交易面仍以 `distance + GDX top 15%` 較值得保留。
+
+---
+
+# 第 16 輪研究任務
+## cross-asset 偏差修正
+
+- [ ] 對 `ret_60 + sma_gap_60 + gld_vs_gdx_20` 測 `neg_weight=1.15`，確認是否能壓低 early-fold 的 all-positive 偏差。Performance:
+- [ ] 對 `ret_60 + sma_gap_60 + distance_to_252_high + gld_vs_gdx_20` 測 `neg_weight=1.15`，確認高上限版本能否在不犧牲太多 test_f1 的情況下提高 walk-forward balance。Performance:
+- [ ] 若 `neg_weight=1.15` 仍不足，再對 `GDX` 單獨版與 `distance + GDX` 版測 `neg_weight=1.30`。Performance:
+
+## 規則收斂
+- [ ] 針對通過 bias 修正後的最佳 `GDX` 版本，比較 `top 15%` / `top 17.5%` / `top 20%` 的 walk-forward 交易摘要。Performance:

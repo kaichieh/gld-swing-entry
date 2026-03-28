@@ -75,3 +75,6 @@ d6022ec	0.5806	0.4841	0.5553	0.7593	0.6508	0.5611	0.6437	pass	discard	ret_60 plu
 7424ecd	0.5367	0.4103	0.5458	0.8134	0.7111	0.6000	0.6673	pass	keep	ret_60 plus sma_gap_60 plus gld_vs_gdx_20 is the strongest single cross-asset combo and merits deeper validation
 7424ecd	0.5258	0.3950	0.5278	0.8249	0.7179	0.5996	0.6678	pass	keep	ret_60 plus sma_gap_60 plus distance_to_252_high plus gld_vs_gdx_20 is the best current cross-asset follow-up candidate on headline score and test f1
 7424ecd	0.5380	0.4000	0.5515	0.7863	0.6932	0.5363	0.6382	fail	discard	slv_gld_ratio_20 does not translate internal precious-metals rotation into a competitive signal
+f67a6ce	0.5258	0.3863	0.5278	0.8249	0.7265	0.5996	0.6678	pass	discard	ret_60 plus sma_gap_60 plus distance_to_252_high plus gld_vs_gdx_20 remains the highest-upside cross-asset candidate but still collapses into all-positive early walk-forward folds
+f67a6ce	0.5367	0.4068	0.5458	0.8134	0.7145	0.6000	0.6673	pass	discard	ret_60 plus sma_gap_60 plus gld_vs_gdx_20 is the steadier GDX variant but early walk-forward folds still break and block promotion
+f67a6ce	0.5225	0.3846	0.5242	0.8261	0.7265	0.5951	0.6659	pass	discard	ret_60 plus sma_gap_60 plus distance_to_252_high plus gld_vs_tlt_20 keeps the best test f1 of the trio but weaker balance and forward returns make it the weaker follow-up
