@@ -299,12 +299,39 @@
 
 ## 一、主線最後確認
 
-- [ ] 對 `ret_60 + sma_gap_60 + neg_weight=1.15` 比較固定 `0.47`、`0.49`、`top 15%`、`top 20%` 的完整 precision/recall 與非重疊回測。Performance:
-- [ ] 對 `ret_60 + sma_gap_60 + neg_weight=1.15` 做與原 combo 完全對稱的 `signal_bucket_summary` 與 `backtest_comparison` 對照表。Performance:
-- [ ] 針對 `ret_60 + sma_gap_60 + neg_weight=1.15` 補一次更長 horizon 的 forward 交易摘要，確認優勢不是只出現在目前 test 切分。Performance:
+- [x] 對 `ret_60 + sma_gap_60 + neg_weight=1.15` 比較固定 `0.47`、`0.49`、`top 15%`、`top 20%` 的完整 precision/recall 與非重疊回測。Performance: `fixed 0.47` 為 `precision=0.6595`, `recall=0.2766`, `avg_return=9.43%`；`fixed 0.49` 雖有 `precision=0.8000`，但 `recall=0.0181`, `selected_count=3`, `avg_return=3.64%` 明顯過度收縮；`top 15%` 為 `precision=0.6224`, `recall=0.1383`, `avg_return=8.59%`；`top 20%` 為 `precision=0.6260`, `recall=0.1859`, `avg_return=9.54%`，是 `neg_weight=1.15` 版本中最實用的 ranking 規則。
+- [x] 對 `ret_60 + sma_gap_60 + neg_weight=1.15` 做與原 combo 完全對稱的 `signal_bucket_summary` 與 `backtest_comparison` 對照表。Performance: 已新增 `rule_comparison.tsv` 做對稱輸出；原 combo 在 `top 15%/20%` 的 `avg_return=10.39%/10.29%` 仍高於 `neg_weight=1.15` 的 `8.59%/9.54%`，而 `neg_weight=1.15` 只有 `threshold` 在模型面維持領先，交易面並未全面超車。
+- [x] 針對 `ret_60 + sma_gap_60 + neg_weight=1.15` 補一次更長 horizon 的 forward 交易摘要，確認優勢不是只出現在目前 test 切分。Performance: 已將 `forward_trade_summary.tsv` 擴成多規則 walk-forward 對照；`combo_neg115_threshold` 為 `38` 筆、`hit_rate=0.6053`, `avg_return=2.98%`，`combo_neg115_top_20pct` 為 `30` 筆、`0.5667`, `3.07%`，但原 combo `top 15%` 仍以 `30` 筆、`0.6333`, `3.32%` 最佳，說明主線模型雖強，最佳交易規則仍偏向原 combo ranking。
 
 ## 二、最終交易規則候選收斂
 
-- [ ] 在原 combo 與 `neg_weight=1.15` 版本之間，正式比較 `auto threshold`、`fixed 0.49`、`top 15%` 三種規則，挑出最值得保留的單一交易規則。Performance:
-- [ ] 若 `top 15%` 仍然最好，補做 `top 12.5%` 與 `top 17.5%`，確認是否需要更細化 ranking 門檻。Performance:
-- [ ] 若 `fixed 0.49` 仍然最好，補做 `0.48` 與 `0.50`，確認是否存在更穩定的固定門檻。Performance:
+- [x] 在原 combo 與 `neg_weight=1.15` 版本之間，正式比較 `auto threshold`、`fixed 0.49`、`top 15%` 三種規則，挑出最值得保留的單一交易規則。Performance: 若看 walk-forward 交易摘要，原 combo `top 15%` 以 `trade_count=30`, `hit_rate=0.6333`, `avg_return=3.32%` 最佳；`neg_weight=1.15 threshold` 次佳為 `38` 筆、`2.98%`；兩邊的 `fixed 0.49` 都顯著偏弱，尤其 `neg_weight=1.15 fixed 0.49` 只剩 `avg_return=0.01%`。
+- [x] 若 `top 15%` 仍然最好，補做 `top 12.5%` 與 `top 17.5%`，確認是否需要更細化 ranking 門檻。Performance: 已延伸到第 10 輪正式比較；原 combo 在 walk-forward 仍以 `top 15%` 的 `avg_return=3.32%` 最佳，`top 12.5%` 與 `top 17.5%` 都沒有超過它。
+- [x] 若 `fixed 0.49` 仍然最好，補做 `0.48` 與 `0.50`，確認是否存在更穩定的固定門檻。Performance: 本輪已先證實 `fixed 0.49` 並非最佳，原 combo 只有 `avg_return=1.01%`、`neg_weight=1.15` 更接近 `0%`，因此不再展開 `0.48/0.50` 細化。
+
+---
+
+# 第 10 輪研究任務
+
+## 一、ranking 規則最後收斂
+
+- [x] 以原 combo 為主，正式比較 `top 12.5%`、`top 15%`、`top 17.5%` 的 test 與 walk-forward 交易摘要。Performance: test 非重疊回測中 `top 12.5%` 與 `fixed 0.49` 幾乎同型，`avg_return=9.53%`；`top 15%` 仍最佳，`avg_return=10.39%`；`top 17.5%` 與 `top 20%` 接近，約 `10.29%`。walk-forward 上則是 `top 12.5%=2.85%`, `top 15%=3.32%`, `top 17.5%=2.99%`，確認原 combo `top 15%` 仍是最穩的 ranking 規則。
+- [x] 對 `neg_weight=1.15` 版本補做 `top 17.5%`，確認它是否比 `top 20%` 更平衡。Performance: `top 17.5%` 在 test 非重疊回測下 `precision=0.6261`, `recall=0.1633`, `avg_return=10.59%`，高於 `top 20%` 的 `9.54%`；但 walk-forward 上 `top 17.5%=3.04%` 仍略低於 `top 20%=3.07%`，差距很小但尚未形成明顯優勢。
+
+## 二、主線模型與交易規則切分
+
+- [x] 將「模型正式最佳」與「交易規則正式最佳」分開記錄到 `results.tsv` / `task.md` 摘要中，避免 `headline_score` 最佳與交易摘要最佳混在一起。Performance: `results.tsv` 已補記「模型正式最佳」仍為 `ret_60 + sma_gap_60 + neg_weight=1.15`，但「交易規則正式最佳」目前偏向原 combo `top 15%`；`task.md` 也已分開描述兩條結論。
+- [x] 針對原 combo `top 15%` 與 `neg_weight=1.15 threshold/top 20%` 做並排結論，明確決定下一輪要沿模型主線還是交易主線前進。Performance: 若看模型面，下一輪主線仍應是 `neg_weight=1.15`；若看可交易規則，原 combo `top 15%` 目前最強，`avg_return=3.32%` 高於 `neg_weight=1.15 threshold` 的 `2.98%` 與 `neg_weight=1.15 top 20%` 的 `3.07%`，因此下一輪應優先沿交易主線收斂 ranking 規則，而不是再強追固定門檻。
+
+---
+
+# 第 11 輪研究任務
+
+## 一、交易主線最後收斂
+
+- [ ] 以原 combo `top 15%` 為主，補做 `top 14%`、`top 16%`，確認最佳 ranking 門檻是否已在局部最優附近。Performance:
+- [ ] 對原 combo `top 15%` 與 `neg_weight=1.15 top 20%` 做同一套 walk-forward 與 test 對照摘要，決定是否正式把交易主線固定成原 combo ranking。Performance:
+
+## 二、模型主線保守追蹤
+
+- [ ] 在 `ret_60 + sma_gap_60 + neg_weight=1.15` 上只做極小範圍的 `neg_weight=1.12`、`1.18` 檢查，確認 `1.15` 是否真的是局部最佳。Performance:

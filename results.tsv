@@ -50,3 +50,6 @@ ecddabe	0.6074	0.4985	0.5767	0.7304	0.6417	0.6000	0.6513	pass	discard	ret_60:sma
 07bef55	0.5843	0.4325	0.5262	0.8068	0.6876	0.5372	0.6534	fail	discard	volume_vs_120 does not improve on existing 60-day volume or combo leaders
 07bef55	0.5913	0.4509	0.5409	0.8105	0.7014	0.5695	0.6674	pass	discard	sma_gap_60 plus sma_gap_120 is respectable but still weaker than the ret_60 plus sma_gap_60 combo
 e8f82bb	0.5900	0.4479	0.5384	0.8097	0.6983	0.5623	0.6644	pass	discard	sma_gap_60 plus sma_gap_120 with neg_weight=1.15 remains a viable backup but does not beat the ret_60 plus sma_gap_60 line
+aaf9daa	0.5934	0.4555	0.5448	0.8135	0.7121	0.5946	0.6769	pass	keep	ret_60 plus sma_gap_60 with neg_weight=1.15 remains the model leader after symmetric rule comparison, but its best trading rule is top 20% rather than fixed 0.49
+aaf9daa	0.5928	0.4586	0.5460	0.8088	0.7075	0.5948	0.6751	pass	discard	the original combo still owns the best forward trading rule with top 15% ranking even though neg_weight=1.15 leads on headline_score
+aaf9daa	0.5928	0.4586	0.5460	0.8088	0.7075	0.5948	0.6751	pass	keep	the original combo top 15% remains the strongest current trading rule after 12.5% and 17.5% ranking sweeps

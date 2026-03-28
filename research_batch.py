@@ -21,6 +21,7 @@ BACKTEST_OUTPUT_PATH = os.path.join(REPO_DIR, "backtest_comparison.tsv")
 REGIME_OUTPUT_PATH = os.path.join(REPO_DIR, "regime_summary.tsv")
 SIGNAL_OUTPUT_PATH = os.path.join(REPO_DIR, "signal_bucket_summary.tsv")
 FORWARD_OUTPUT_PATH = os.path.join(REPO_DIR, "forward_trade_summary.tsv")
+RULE_OUTPUT_PATH = os.path.join(REPO_DIR, "rule_comparison.tsv")
 ROUND_OUTPUT_PATH = os.path.join(CACHE_DIR, "research_batch.json")
 FUTURE_RETURN_COLUMN = "future_return_60"
 DEFAULT_INTERACTIONS = (("drawdown_20", "volume_vs_20"),)
@@ -74,6 +75,20 @@ class BacktestResult:
     longest_win_streak: int
     longest_loss_streak: int
     threshold_or_cutoff: float
+
+
+def classify_probs_by_rule(probabilities: np.ndarray, threshold: float, rule_name: str) -> tuple[np.ndarray, float]:
+    if rule_name == "threshold":
+        return probabilities >= threshold, threshold
+    if rule_name.startswith("top_") and rule_name.endswith("pct"):
+        raw_pct = rule_name[len("top_") : -len("pct")].replace("_", ".")
+        pct = float(raw_pct)
+        cutoff = float(np.quantile(probabilities, 1.0 - pct / 100.0))
+        return probabilities >= cutoff, cutoff
+    if rule_name.startswith("fixed_"):
+        cutoff = float(rule_name.split("_", 1)[1])
+        return probabilities >= cutoff, cutoff
+    raise ValueError(f"Unsupported rule: {rule_name}")
 
 
 def compute_headline_score(
@@ -411,10 +426,8 @@ def backtest_rules(model_name: str, artifacts: dict[str, object]) -> list[Backte
     rows: list[BacktestResult] = []
 
     selections = {
-        "threshold": (probs >= threshold, threshold),
-        "top_10pct": (probs >= float(np.quantile(probs, 0.90)), float(np.quantile(probs, 0.90))),
-        "top_15pct": (probs >= float(np.quantile(probs, 0.85)), float(np.quantile(probs, 0.85))),
-        "top_20pct": (probs >= float(np.quantile(probs, 0.80)), float(np.quantile(probs, 0.80))),
+        rule_name: classify_probs_by_rule(probs, threshold, rule_name)
+        for rule_name in ("threshold", "top_10pct", "top_15pct", "top_20pct")
     }
     historical_probs = np.concatenate(
         [np.asarray(artifacts["validation_probabilities"], dtype=np.float64), np.asarray(artifacts["test_probabilities"], dtype=np.float64)]
@@ -458,6 +471,40 @@ def fixed_threshold_backtests(model_name: str, artifacts: dict[str, object], thr
         result.model_name = model_name
         result.rule_name = f"fixed_{threshold:.2f}"
         rows.append(result)
+    return rows
+
+
+def rule_comparison_rows(model_name: str, artifacts: dict[str, object], rules: tuple[str, ...]) -> list[dict[str, object]]:
+    test_frame = artifacts["clean_splits"]["test"]
+    probs = np.asarray(artifacts["test_probabilities"], dtype=np.float64)
+    labels = test_frame[pr.TARGET_COLUMN].to_numpy(dtype=np.float32)
+    future_returns = test_frame[FUTURE_RETURN_COLUMN].to_numpy(dtype=np.float64)
+    rows: list[dict[str, object]] = []
+    for rule_name in rules:
+        selected, cutoff = classify_probs_by_rule(probs, float(artifacts["threshold"]), rule_name)
+        selected_float = selected.astype(np.float32)
+        tp = float(np.sum((selected_float == 1.0) & (labels == 1.0)))
+        fp = float(np.sum((selected_float == 1.0) & (labels == 0.0)))
+        fn = float(np.sum((selected_float == 0.0) & (labels == 1.0)))
+        precision = tp / max(tp + fp, 1.0)
+        recall = tp / max(tp + fn, 1.0)
+        backtest = run_non_overlap_backtest(
+            test_frame["date"], future_returns, selected.astype(bool), pr.HORIZON_DAYS, float(cutoff)
+        )
+        rows.append(
+            {
+                "model_name": model_name,
+                "rule_name": rule_name,
+                "threshold_or_cutoff": round_float(cutoff),
+                "selected_count": backtest.selected_count,
+                "predicted_positive_rate": round_float(float(selected.mean())),
+                "precision": round_float(float(precision)),
+                "recall": round_float(float(recall)),
+                "hit_rate": round_float(backtest.hit_rate),
+                "avg_return": round_float(backtest.avg_return),
+                "max_drawdown_compound": round_float(backtest.max_drawdown_compound),
+            }
+        )
     return rows
 
 
@@ -639,14 +686,9 @@ def forward_trade_summary(
         matrices = artifacts["matrices"]
         test_probs = tr.sigmoid(matrices["test"] @ artifacts["weights"])
         future_returns = clean_splits["test"][FUTURE_RETURN_COLUMN].to_numpy(dtype=np.float64)
-        if rule == "threshold":
-            selected = test_probs >= float(artifacts["threshold"])
-        elif rule == "top_15pct":
-            selected = test_probs >= float(np.quantile(test_probs, 0.85))
-        else:
-            raise ValueError(f"Unsupported forward trade rule: {rule}")
+        selected, cutoff = classify_probs_by_rule(test_probs, float(artifacts["threshold"]), rule)
         backtest = run_non_overlap_backtest(
-            clean_splits["test"]["date"], future_returns, selected.astype(bool), pr.HORIZON_DAYS, float(artifacts["threshold"])
+            clean_splits["test"]["date"], future_returns, selected.astype(bool), pr.HORIZON_DAYS, float(cutoff)
         )
         trade_count += backtest.selected_count
         if backtest.selected_count:
@@ -895,6 +937,83 @@ def main() -> None:
         default_frame, ("ret_60", "sma_gap_60"), "threshold", folds=4, neg_weight=1.15
     )
     sma_gap_trade_forward_top15 = forward_trade_summary(default_frame, ("sma_gap_60",), "top_15pct", folds=4)
+    rule_comparison = pd.DataFrame(
+        rule_comparison_rows(
+            "ret_60_plus_sma_gap_60",
+            model_artifacts["ret_60_plus_sma_gap_60"],
+            ("threshold", "fixed_0.47", "fixed_0.49", "top_12_5pct", "top_15pct", "top_17_5pct", "top_20pct"),
+        )
+        + rule_comparison_rows(
+            "ret_60_plus_sma_gap_60_plus_neg_weight_1_15",
+            model_artifacts["ret_60_plus_sma_gap_60_plus_neg_weight_1_15"],
+            ("threshold", "fixed_0.47", "fixed_0.49", "top_15pct", "top_17_5pct", "top_20pct"),
+        )
+    )
+    forward_rule_summary = pd.DataFrame(
+        [
+            {
+                "strategy_name": "combo_threshold",
+                "rule_name": "threshold",
+                **combo_trade_forward_threshold,
+            },
+            {
+                "strategy_name": "combo_fixed_0_49",
+                "rule_name": "fixed_0.49",
+                **forward_trade_summary(default_frame, ("ret_60", "sma_gap_60"), "fixed_0.49", folds=4),
+            },
+            {
+                "strategy_name": "combo_top_12_5pct",
+                "rule_name": "top_12_5pct",
+                **forward_trade_summary(default_frame, ("ret_60", "sma_gap_60"), "top_12_5pct", folds=4),
+            },
+            {
+                "strategy_name": "combo_top_15pct",
+                "rule_name": "top_15pct",
+                **forward_trade_summary(default_frame, ("ret_60", "sma_gap_60"), "top_15pct", folds=4),
+            },
+            {
+                "strategy_name": "combo_top_17_5pct",
+                "rule_name": "top_17_5pct",
+                **forward_trade_summary(default_frame, ("ret_60", "sma_gap_60"), "top_17_5pct", folds=4),
+            },
+            {
+                "strategy_name": "combo_top_20pct",
+                "rule_name": "top_20pct",
+                **forward_trade_summary(default_frame, ("ret_60", "sma_gap_60"), "top_20pct", folds=4),
+            },
+            {
+                "strategy_name": "combo_neg115_top_17_5pct",
+                "rule_name": "top_17_5pct",
+                **forward_trade_summary(default_frame, ("ret_60", "sma_gap_60"), "top_17_5pct", folds=4, neg_weight=1.15),
+            },
+            {
+                "strategy_name": "combo_neg115_threshold",
+                "rule_name": "threshold",
+                **combo_neg115_trade_forward_threshold,
+            },
+            {
+                "strategy_name": "combo_neg115_fixed_0_47",
+                "rule_name": "fixed_0.47",
+                **forward_trade_summary(default_frame, ("ret_60", "sma_gap_60"), "fixed_0.47", folds=4, neg_weight=1.15),
+            },
+            {
+                "strategy_name": "combo_neg115_fixed_0_49",
+                "rule_name": "fixed_0.49",
+                **forward_trade_summary(default_frame, ("ret_60", "sma_gap_60"), "fixed_0.49", folds=4, neg_weight=1.15),
+            },
+            {
+                "strategy_name": "combo_neg115_top_15pct",
+                "rule_name": "top_15pct",
+                **forward_trade_summary(default_frame, ("ret_60", "sma_gap_60"), "top_15pct", folds=4, neg_weight=1.15),
+            },
+            {
+                "strategy_name": "combo_neg115_top_20pct",
+                "rule_name": "top_20pct",
+                **forward_trade_summary(default_frame, ("ret_60", "sma_gap_60"), "top_20pct", folds=4, neg_weight=1.15),
+            },
+            {"strategy_name": "sma_gap_60_top15", "rule_name": "top_15pct", **sma_gap_trade_forward_top15},
+        ]
+    )
 
     combo_artifacts = model_artifacts["ret_60_plus_sma_gap_60"]
     precision_summary = {
@@ -941,13 +1060,8 @@ def main() -> None:
             ("ret_60_plus_sma_gap_60_plus_neg_weight_1_15", model_artifacts["ret_60_plus_sma_gap_60_plus_neg_weight_1_15"]),
         ]
     ).to_csv(SIGNAL_OUTPUT_PATH, sep="\t", index=False)
-    pd.DataFrame(
-        [
-            {"strategy_name": "combo_threshold", **combo_trade_forward_threshold},
-            {"strategy_name": "combo_neg115_threshold", **combo_neg115_trade_forward_threshold},
-            {"strategy_name": "sma_gap_60_top15", **sma_gap_trade_forward_top15},
-        ]
-    ).to_csv(FORWARD_OUTPUT_PATH, sep="\t", index=False)
+    rule_comparison.to_csv(RULE_OUTPUT_PATH, sep="\t", index=False)
+    forward_rule_summary.to_csv(FORWARD_OUTPUT_PATH, sep="\t", index=False)
 
     round_payload = {
         "models": {name: asdict(result) for name, result in model_results.items()},
@@ -965,6 +1079,8 @@ def main() -> None:
         "combo_trade_forward_threshold": combo_trade_forward_threshold,
         "combo_neg115_trade_forward_threshold": combo_neg115_trade_forward_threshold,
         "sma_gap_trade_forward_top15": sma_gap_trade_forward_top15,
+        "rule_comparison": rule_comparison.to_dict(orient="records"),
+        "forward_rule_summary": forward_rule_summary.to_dict(orient="records"),
         "combo_signal_summary": combo_signal_summary,
         "combo_neg115_signal_summary": combo_neg115_signal_summary,
     }

@@ -42,6 +42,8 @@ This framing is closer to a real swing-trade entry decision:
 - [results.tsv](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/results.tsv): experiment log
 - [task.md](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/task.md): next research tasks
 - [backtest_comparison.tsv](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/backtest_comparison.tsv): latest non-overlap backtest comparison table
+- [rule_comparison.tsv](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/rule_comparison.tsv): symmetric test-split rule comparison with precision/recall and non-overlap trade stats
+- [forward_trade_summary.tsv](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/forward_trade_summary.tsv): walk-forward trade summary across rule variants
 - [regime_summary.tsv](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/regime_summary.tsv): latest yearly barrier and regime-stage summaries
 
 ## Default target settings
