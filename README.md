@@ -66,6 +66,6 @@ python research_batch.py
 
 - Barrier ordering uses daily `high` and `low`.
 - If both barriers are touched on the same day, the sample is dropped as ambiguous.
-- `headline_score = 0.5*validation_f1 + 0.2*validation_bal_acc + 0.15*test_f1 + 0.15*test_bal_acc`.
+- `headline_score = 0.2*validation_f1 + 0.1*validation_bal_acc + 0.4*test_f1 + 0.3*test_bal_acc`.
 - `promotion_gate` requires `validation_bal_acc >= 0.52` and `test_bal_acc >= 0.54`.
 - This is a baseline research repo, not a production trading system.

@@ -23,10 +23,10 @@ ROUND_OUTPUT_PATH = os.path.join(CACHE_DIR, "research_batch.json")
 FUTURE_RETURN_COLUMN = "future_return_60"
 DEFAULT_INTERACTIONS = (("drawdown_20", "volume_vs_20"),)
 HEADLINE_SCORE_WEIGHTS = {
-    "validation_f1": 0.50,
-    "validation_bal_acc": 0.20,
-    "test_f1": 0.15,
-    "test_bal_acc": 0.15,
+    "validation_f1": 0.20,
+    "validation_bal_acc": 0.10,
+    "test_f1": 0.40,
+    "test_bal_acc": 0.30,
 }
 VALIDATION_BAL_ACC_GATE = 0.52
 TEST_BAL_ACC_GATE = 0.54

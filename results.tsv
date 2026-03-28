@@ -1,46 +1,46 @@
 commit_id	validation_f1	validation_accuracy	validation_bal_acc	test_f1	test_accuracy	test_bal_acc	headline_score	promotion_gate	status	description
-09de924	0.5765	0.4150	0.5102	0.8129	0.6988	0.5526	0.5951	fail	keep	initial 60d +8/-4 drop-neutral baseline
-09de924	0.5853	0.4487	0.5346	0.8092	0.6972	0.5600	0.6049	pass	keep	add drawdown_20 by volume_vs_20 interaction to baseline
-896af07	0.5341	0.3699	0.5052	0.7001	0.5397	0.4993	0.5480	fail	discard	keep-all binary baseline underperforms default drop-neutral baseline
-896af07	0.6080	0.4724	0.5319	0.7231	0.5739	0.4802	0.5909	fail	discard	60d +6/-3 baseline improves validation f1 but degrades test stability versus default
-896af07	0.5167	0.4218	0.5378	0.7277	0.6225	0.5602	0.5591	pass	discard	60d +10/-5 baseline loses validation f1 despite stronger average return profile
-2441f56	0.5851	0.4441	0.5320	0.8115	0.7003	0.5623	0.6050	pass	discard	current best plus neg_weight=1.1 improves test slightly but misses validation_f1 leader
-2441f56	0.5853	0.4487	0.5346	0.8081	0.6972	0.5637	0.6053	pass	discard	current best plus neg_weight=1.2 matches validation_f1 but softens test_f1
-2441f56	0.5845	0.4426	0.5307	0.8074	0.6957	0.5613	0.6037	pass	discard	current best plus learning_rate=0.01 underperforms current best
-2441f56	0.5853	0.4487	0.5346	0.8092	0.6972	0.5600	0.6049	pass	discard	current best threshold_steps=801 matches threshold_steps=401 exactly
-2441f56	0.5836	0.4472	0.5327	0.8058	0.6942	0.5614	0.6034	pass	discard	current best plus gap_down_flag does not beat current best
-2441f56	0.5849	0.4456	0.5327	0.8081	0.6957	0.5589	0.6040	pass	discard	current best plus inside_bar does not beat current best
-2441f56	0.5840	0.4349	0.5262	0.8092	0.6957	0.5552	0.6019	pass	discard	current best plus range_z_20 keeps test_f1 but weakens validation balance
-2441f56	0.5836	0.4472	0.5327	0.8070	0.6957	0.5626	0.6038	pass	discard	current best plus gap_down_flag:drawdown_20 does not beat current best
-2441f56	0.5859	0.4502	0.5359	0.8054	0.6927	0.5579	0.6046	pass	discard	current best plus range_z_20:drawdown_20 slightly lifts validation but weakens test
-2441f56	0.5819	0.4410	0.5282	0.8085	0.6957	0.5577	0.6015	pass	discard	current best fixed threshold=0.42 is close to default but not better overall
-2441f56	0.5021	0.4655	0.4996	0.6279	0.5398	0.5208	0.5233	fail	discard	current best fixed threshold=0.45 improves return per trade but loses classification quality
-2441f56	0.0962	0.5972	0.5075	0.0310	0.3318	0.5032	0.2297	fail	discard	current best fixed threshold=0.49 is too selective for this classifier
-2441f56	0.2188	0.5299	0.4695	0.3141	0.3991	0.5051	0.3262	fail	discard	current best top-20-percent ranking filter does not improve barrier classification
-2441f56	0.1524	0.5743	0.4953	0.1811	0.3639	0.5049	0.2782	fail	discard	current best top-10-percent ranking filter is too sparse for current scores
-0fe5d35	0.5830	0.4494	0.5346	0.8086	0.6983	0.5660	0.6046	pass	keep	current best rerun on NaN-clean dataset after experimental feature fix
-0fe5d35	0.5868	0.4448	0.5345	0.8128	0.7044	0.5718	0.6080	pass	keep	add ret_60 after NaN cleanup; new best overall trade-off
-0fe5d35	0.5824	0.4479	0.5333	0.8078	0.6968	0.5636	0.6036	pass	discard	add drawdown_60 after NaN cleanup does not beat NaN-clean baseline
-0fe5d35	0.5917	0.4540	0.5428	0.8083	0.7014	0.5768	0.6122	pass	keep	add sma_gap_60 after NaN cleanup; strongest validation and bal_acc profile
-0fe5d35	0.5811	0.4294	0.5224	0.8084	0.6937	0.5516	0.5990	pass	discard	add volume_vs_60 after NaN cleanup remains weak
-c961e17	0.5868	0.4448	0.5345	0.8128	0.7044	0.5718	0.6080	pass	keep	ret_60 candidate remains stable across seeds and best test_f1 on current split
-c961e17	0.5917	0.4540	0.5428	0.8083	0.7014	0.5768	0.6122	pass	keep	sma_gap_60 candidate remains stable across seeds and strongest validation_bal_acc
-c961e17	0.5868	0.4448	0.5345	0.8128	0.7044	0.5718	0.6080	pass	discard	ret_60 plus drawdown_20:volume_vs_20 matches ret_60 because interaction is already in the default model
-c961e17	0.5917	0.4540	0.5428	0.8083	0.7014	0.5768	0.6122	pass	discard	sma_gap_60 plus drawdown_20:volume_vs_20 matches sma_gap_60 because interaction is already in the default model
-c961e17	0.5867	0.4151	0.5000	0.8697	0.7694	0.5000	0.5988	fail	discard	starting training from 2012 shrinks history but collapses balanced accuracy to chance level
-c961e17	0.7607	0.6138	0.5000	0.8721	0.7732	0.5000	0.6862	fail	discard	starting training from 2016 inflates f1 via positive bias while balanced accuracy stays at chance
-55df78c	0.5928	0.4586	0.5460	0.8088	0.7075	0.5948	0.6161	pass	keep	combine ret_60 and sma_gap_60 for the strongest overall validation and balanced-accuracy trade-off on the default target
-55df78c	0.5928	0.4586	0.5460	0.8088	0.7075	0.5948	0.6161	pass	discard	ret_60 plus sma_gap_60 plus drawdown_20:volume_vs_20 matches the combo because that interaction is already enabled by default
-55df78c	0.5809	0.4555	0.5365	0.8000	0.6937	0.5785	0.6045	pass	discard	replacing ret_20 with ret_60 loses validation_f1 and test_f1 versus keeping the richer short-plus-long return stack
-55df78c	0.5824	0.4325	0.5249	0.6541	0.5498	0.5062	0.5702	fail	discard	adding year as a simple regime feature sharply hurts test generalization
-55df78c	0.5724	0.4018	0.5013	0.8062	0.6753	0.5000	0.5824	fail	discard	adding rolling_return_120 collapses toward all-positive predictions and chance balanced accuracy
-55df78c	0.5762	0.4110	0.5090	0.8105	0.7014	0.5695	0.5969	fail	discard	adding rolling_vol_60 is the least-bad regime feature but still trails ret_60 and the ret_60 plus sma_gap_60 combo
-55df78c	0.5724	0.4018	0.5013	0.8111	0.6876	0.5225	0.5865	fail	discard	adding all simple regime features together still overpredicts positives and does not close the regime gap
-55df78c	0.5944	0.4262	0.5049	0.8103	0.6896	0.5276	0.5989	fail	discard	80d +8/-4 with ret_60 lifts validation_f1 only by predicting almost all positives and weakens balance on test
-55df78c	0.6275	0.4579	0.5012	0.8219	0.7008	0.5135	0.6143	fail	discard	120d +8/-4 with ret_60 inflates f1 while balanced accuracy degrades toward chance and positive-rate bias
-55df78c	0.5346	0.5409	0.6322	0.7250	0.6077	0.5282	0.5817	fail	discard	60d +12/-6 improves class balance but clearly underperforms the default target on core f1 metrics
-ecddabe	0.5931	0.4571	0.5454	0.8040	0.7014	0.5903	0.6148	pass	discard	ret_60 plus sma_gap_60 with neg_weight=1.1 does not improve the combo leader on test
-ecddabe	0.5813	0.4233	0.5192	0.8087	0.7044	0.5852	0.6036	fail	discard	adding rolling_vol_60 on top of the combo weakens validation quality without improving test
-ecddabe	0.5724	0.4018	0.5013	0.8062	0.6753	0.5000	0.5824	fail	discard	ret_120 collapses toward all-positive behavior and chance balanced accuracy
-ecddabe	0.5831	0.4387	0.5288	0.8077	0.6953	0.5588	0.6023	pass	discard	sma_gap_120 is milder than ret_120 but still weaker than sma_gap_60 and the combo
-ecddabe	0.6074	0.4985	0.5767	0.7304	0.6417	0.6000	0.6186	pass	discard	ret_60:sma_gap_60 interaction overfits validation and breaks test f1
+09de924	0.5765	0.4150	0.5102	0.8129	0.6988	0.5526	0.6573	fail	keep	initial 60d +8/-4 drop-neutral baseline
+09de924	0.5853	0.4487	0.5346	0.8092	0.6972	0.5600	0.6622	pass	keep	add drawdown_20 by volume_vs_20 interaction to baseline
+896af07	0.5341	0.3699	0.5052	0.7001	0.5397	0.4993	0.5872	fail	discard	keep-all binary baseline underperforms default drop-neutral baseline
+896af07	0.6080	0.4724	0.5319	0.7231	0.5739	0.4802	0.6081	fail	discard	60d +6/-3 baseline improves validation f1 but degrades test stability versus default
+896af07	0.5167	0.4218	0.5378	0.7277	0.6225	0.5602	0.6163	pass	discard	60d +10/-5 baseline loses validation f1 despite stronger average return profile
+2441f56	0.5851	0.4441	0.5320	0.8115	0.7003	0.5623	0.6635	pass	discard	current best plus neg_weight=1.1 improves test slightly but misses validation_f1 leader
+2441f56	0.5853	0.4487	0.5346	0.8081	0.6972	0.5637	0.6629	pass	discard	current best plus neg_weight=1.2 matches validation_f1 but softens test_f1
+2441f56	0.5845	0.4426	0.5307	0.8074	0.6957	0.5613	0.6613	pass	discard	current best plus learning_rate=0.01 underperforms current best
+2441f56	0.5853	0.4487	0.5346	0.8092	0.6972	0.5600	0.6622	pass	discard	current best threshold_steps=801 matches threshold_steps=401 exactly
+2441f56	0.5836	0.4472	0.5327	0.8058	0.6942	0.5614	0.6607	pass	discard	current best plus gap_down_flag does not beat current best
+2441f56	0.5849	0.4456	0.5327	0.8081	0.6957	0.5589	0.6612	pass	discard	current best plus inside_bar does not beat current best
+2441f56	0.5840	0.4349	0.5262	0.8092	0.6957	0.5552	0.6597	pass	discard	current best plus range_z_20 keeps test_f1 but weakens validation balance
+2441f56	0.5836	0.4472	0.5327	0.8070	0.6957	0.5626	0.6616	pass	discard	current best plus gap_down_flag:drawdown_20 does not beat current best
+2441f56	0.5859	0.4502	0.5359	0.8054	0.6927	0.5579	0.6603	pass	discard	current best plus range_z_20:drawdown_20 slightly lifts validation but weakens test
+2441f56	0.5819	0.4410	0.5282	0.8085	0.6957	0.5577	0.6599	pass	discard	current best fixed threshold=0.42 is close to default but not better overall
+2441f56	0.5021	0.4655	0.4996	0.6279	0.5398	0.5208	0.5578	fail	discard	current best fixed threshold=0.45 improves return per trade but loses classification quality
+2441f56	0.0962	0.5972	0.5075	0.0310	0.3318	0.5032	0.2333	fail	discard	current best fixed threshold=0.49 is too selective for this classifier
+2441f56	0.2188	0.5299	0.4695	0.3141	0.3991	0.5051	0.3679	fail	discard	current best top-20-percent ranking filter does not improve barrier classification
+2441f56	0.1524	0.5743	0.4953	0.1811	0.3639	0.5049	0.3039	fail	discard	current best top-10-percent ranking filter is too sparse for current scores
+0fe5d35	0.5830	0.4494	0.5346	0.8086	0.6983	0.5660	0.6633	pass	keep	current best rerun on NaN-clean dataset after experimental feature fix
+0fe5d35	0.5868	0.4448	0.5345	0.8128	0.7044	0.5718	0.6675	pass	keep	add ret_60 after NaN cleanup; new best overall trade-off
+0fe5d35	0.5824	0.4479	0.5333	0.8078	0.6968	0.5636	0.6620	pass	discard	add drawdown_60 after NaN cleanup does not beat NaN-clean baseline
+0fe5d35	0.5917	0.4540	0.5428	0.8083	0.7014	0.5768	0.6690	pass	keep	add sma_gap_60 after NaN cleanup; strongest validation and bal_acc profile
+0fe5d35	0.5811	0.4294	0.5224	0.8084	0.6937	0.5516	0.6573	pass	discard	add volume_vs_60 after NaN cleanup remains weak
+c961e17	0.5868	0.4448	0.5345	0.8128	0.7044	0.5718	0.6675	pass	keep	ret_60 candidate remains stable across seeds and best test_f1 on current split
+c961e17	0.5917	0.4540	0.5428	0.8083	0.7014	0.5768	0.6690	pass	keep	sma_gap_60 candidate remains stable across seeds and strongest validation_bal_acc
+c961e17	0.5868	0.4448	0.5345	0.8128	0.7044	0.5718	0.6675	pass	discard	ret_60 plus drawdown_20:volume_vs_20 matches ret_60 because interaction is already in the default model
+c961e17	0.5917	0.4540	0.5428	0.8083	0.7014	0.5768	0.6690	pass	discard	sma_gap_60 plus drawdown_20:volume_vs_20 matches sma_gap_60 because interaction is already in the default model
+c961e17	0.5867	0.4151	0.5000	0.8697	0.7694	0.5000	0.6652	fail	discard	starting training from 2012 shrinks history but collapses balanced accuracy to chance level
+c961e17	0.7607	0.6138	0.5000	0.8721	0.7732	0.5000	0.7010	fail	discard	starting training from 2016 inflates f1 via positive bias while balanced accuracy stays at chance
+55df78c	0.5928	0.4586	0.5460	0.8088	0.7075	0.5948	0.6751	pass	keep	combine ret_60 and sma_gap_60 for the strongest overall validation and balanced-accuracy trade-off on the default target
+55df78c	0.5928	0.4586	0.5460	0.8088	0.7075	0.5948	0.6751	pass	discard	ret_60 plus sma_gap_60 plus drawdown_20:volume_vs_20 matches the combo because that interaction is already enabled by default
+55df78c	0.5809	0.4555	0.5365	0.8000	0.6937	0.5785	0.6634	pass	discard	replacing ret_20 with ret_60 loses validation_f1 and test_f1 versus keeping the richer short-plus-long return stack
+55df78c	0.5824	0.4325	0.5249	0.6541	0.5498	0.5062	0.5825	fail	discard	adding year as a simple regime feature sharply hurts test generalization
+55df78c	0.5724	0.4018	0.5013	0.8062	0.6753	0.5000	0.6371	fail	discard	adding rolling_return_120 collapses toward all-positive predictions and chance balanced accuracy
+55df78c	0.5762	0.4110	0.5090	0.8105	0.7014	0.5695	0.6612	fail	discard	adding rolling_vol_60 is the least-bad regime feature but still trails ret_60 and the ret_60 plus sma_gap_60 combo
+55df78c	0.5724	0.4018	0.5013	0.8111	0.6876	0.5225	0.6458	fail	discard	adding all simple regime features together still overpredicts positives and does not close the regime gap
+55df78c	0.5944	0.4262	0.5049	0.8103	0.6896	0.5276	0.6518	fail	discard	80d +8/-4 with ret_60 lifts validation_f1 only by predicting almost all positives and weakens balance on test
+55df78c	0.6275	0.4579	0.5012	0.8219	0.7008	0.5135	0.6584	fail	discard	120d +8/-4 with ret_60 inflates f1 while balanced accuracy degrades toward chance and positive-rate bias
+55df78c	0.5346	0.5409	0.6322	0.7250	0.6077	0.5282	0.6186	fail	discard	60d +12/-6 improves class balance but clearly underperforms the default target on core f1 metrics
+ecddabe	0.5931	0.4571	0.5454	0.8040	0.7014	0.5903	0.6719	pass	discard	ret_60 plus sma_gap_60 with neg_weight=1.1 does not improve the combo leader on test
+ecddabe	0.5813	0.4233	0.5192	0.8087	0.7044	0.5852	0.6672	fail	discard	adding rolling_vol_60 on top of the combo weakens validation quality without improving test
+ecddabe	0.5724	0.4018	0.5013	0.8062	0.6753	0.5000	0.6371	fail	discard	ret_120 collapses toward all-positive behavior and chance balanced accuracy
+ecddabe	0.5831	0.4387	0.5288	0.8077	0.6953	0.5588	0.6602	pass	discard	sma_gap_120 is milder than ret_120 but still weaker than sma_gap_60 and the combo
+ecddabe	0.6074	0.4985	0.5767	0.7304	0.6417	0.6000	0.6513	pass	discard	ret_60:sma_gap_60 interaction overfits validation and breaks test f1
