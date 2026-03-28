@@ -31,29 +31,6 @@ PROCESSED_DATA_PATH = os.path.join(CACHE_DIR, "gld_features.csv")
 METADATA_PATH = os.path.join(CACHE_DIR, "metadata.json")
 
 GLD_STOOQ_URL = "https://stooq.com/q/d/l/?s=gld.us&i=d"
-CONTEXT_SOURCES = {
-    "SPY": {
-        "stooq_url": "https://stooq.com/q/d/l/?s=spy.us&i=d",
-        "cache_path": os.path.join(CACHE_DIR, "spy_daily.csv"),
-    },
-    # UUP is used as a liquid dollar proxy for DXY-style context.
-    "UUP": {
-        "stooq_url": "https://stooq.com/q/d/l/?s=uup.us&i=d",
-        "cache_path": os.path.join(CACHE_DIR, "uup_daily.csv"),
-    },
-    "TLT": {
-        "stooq_url": "https://stooq.com/q/d/l/?s=tlt.us&i=d",
-        "cache_path": os.path.join(CACHE_DIR, "tlt_daily.csv"),
-    },
-    "GDX": {
-        "stooq_url": "https://stooq.com/q/d/l/?s=gdx.us&i=d",
-        "cache_path": os.path.join(CACHE_DIR, "gdx_daily.csv"),
-    },
-    "SLV": {
-        "stooq_url": "https://stooq.com/q/d/l/?s=slv.us&i=d",
-        "cache_path": os.path.join(CACHE_DIR, "slv_daily.csv"),
-    },
-}
 TARGET_COLUMN = "target_hit_up_first"
 
 FEATURE_COLUMNS = [
@@ -94,12 +71,6 @@ EXPERIMENTAL_FEATURE_COLUMNS = [
     "up_day_ratio_20",
     "above_200dma_flag",
     "atr_pct_20",
-    "gld_vs_spy_20",
-    "gld_vs_dxy_20",
-    "gld_vs_tlt_20",
-    "gld_vs_gdx_20",
-    "gld_vs_gdx_60",
-    "slv_gld_ratio_20",
 ]
 
 
@@ -214,14 +185,7 @@ def download_gld_prices() -> pd.DataFrame:
     return download_symbol_prices("GLD", GLD_STOOQ_URL, RAW_DATA_PATH)
 
 
-def download_context_prices() -> dict[str, pd.DataFrame]:
-    return {
-        symbol: download_symbol_prices(symbol, source["stooq_url"], source["cache_path"])
-        for symbol, source in CONTEXT_SOURCES.items()
-    }
-
-
-def add_context_features(frame: pd.DataFrame, context_frames: dict[str, pd.DataFrame] | None = None) -> pd.DataFrame:
+def add_context_features(frame: pd.DataFrame) -> pd.DataFrame:
     df = frame.copy()
     close = df["close"]
     high = df["high"]
@@ -246,31 +210,6 @@ def add_context_features(frame: pd.DataFrame, context_frames: dict[str, pd.DataF
         axis=1,
     ).max(axis=1)
     df["atr_pct_20"] = true_range.rolling(20).mean() / close
-
-    context_frames = {} if context_frames is None else context_frames
-
-    def add_ratio_feature(symbol: str, feature_name: str, lookback: int = 20, numerator: str = "gld") -> None:
-        nonlocal df
-        context_frame = context_frames.get(symbol)
-        if context_frame is None:
-            df[feature_name] = np.nan
-            return
-        column_name = f"{symbol.lower()}_close"
-        context_close = context_frame[["date", "close"]].rename(columns={"close": column_name})
-        df = df.merge(context_close, on="date", how="left")
-        if numerator == "gld":
-            ratio = df["close"] / df[column_name]
-        else:
-            ratio = df[column_name] / df["close"]
-        df[feature_name] = ratio.pct_change(lookback)
-        df = df.drop(columns=[column_name])
-
-    add_ratio_feature("SPY", "gld_vs_spy_20")
-    add_ratio_feature("UUP", "gld_vs_dxy_20")
-    add_ratio_feature("TLT", "gld_vs_tlt_20")
-    add_ratio_feature("GDX", "gld_vs_gdx_20")
-    add_ratio_feature("GDX", "gld_vs_gdx_60", lookback=60)
-    add_ratio_feature("SLV", "slv_gld_ratio_20", numerator="context")
     return df
 
 
@@ -387,9 +326,8 @@ def add_price_features(frame: pd.DataFrame) -> pd.DataFrame:
 
 def add_features(frame: pd.DataFrame) -> pd.DataFrame:
     config = get_runtime_config()
-    context_frames = download_context_prices()
     df = add_price_features(frame)
-    df = add_context_features(df, context_frames=context_frames)
+    df = add_context_features(df)
     labels, realized_returns = build_barrier_labels(
         df,
         int(config["horizon_days"]),

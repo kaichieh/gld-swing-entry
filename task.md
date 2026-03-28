@@ -424,11 +424,11 @@
 ---
 
 # 第 18 輪研究任務
-## cross-asset 次佳線清查
+## 純 GLD 主線收斂
 
-- [ ] 測試 `ret_60 + sma_gap_60 + atr_pct_20 + gld_vs_gdx_20`，確認較穩的波動狀態特徵能否比 `distance_to_252_high` 更自然地承接 `GDX` context。Performance:
-- [ ] 測試 `ret_60 + sma_gap_60 + up_day_ratio_20 + gld_vs_gdx_20`，確認結構型 input 與 `GDX` 疊加是否能比長視窗 price-level 特徵更穩。Performance:
-- [ ] 測試 `ret_60 + sma_gap_60 + atr_pct_20 + gld_vs_tlt_20`，確認 `TLT` 是否在較穩內生特徵上比 `GDX` 更容易泛化。Performance:
+- [ ] 測試 `ret_60 + sma_gap_60 + atr_pct_20`，確認較穩的波動狀態特徵是否能正式超過目前 live。Performance:
+- [ ] 測試 `ret_60 + sma_gap_60 + up_day_ratio_20`，確認結構型特徵是否比 `distance_to_252_high` 更自然且更穩。Performance:
+- [ ] 測試 `ret_60 + sma_gap_60 + close_location_20`，重新確認先前 validation 很亮但 test 較弱的路線，在純 GLD 正式流程下是否還值得保留。Performance:
 
 ## 規則延伸
-- [ ] 對第 18 輪表現最好的 cross-asset 候選，補做 `top 15%` / `top 17.5%` / `top 20%` walk-forward 比較。Performance:
+- [ ] 對第 18 輪表現最好的純 GLD 候選，補做 `top 15%` / `top 17.5%` / `top 20%` walk-forward 比較。Performance:

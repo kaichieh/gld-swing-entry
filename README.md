@@ -33,7 +33,7 @@ This framing is closer to a real swing-trade entry decision:
 
 ## Files
 
-- [prepare.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/prepare.py): downloads GLD daily data, builds features, and labels barrier outcomes
+- [prepare.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/prepare.py): downloads GLD daily data only, builds pure-GLD features, and labels barrier outcomes
 - [train.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/train.py): trains a NumPy logistic baseline on the processed dataset
 - [predict_latest.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/predict_latest.py): scores the latest raw GLD bar without waiting for future labels
 - [chart_signals.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/chart_signals.py): exports an HTML chart of recent closes colored by live signal
@@ -68,6 +68,7 @@ python research_batch.py
 
 - Barrier ordering uses daily `high` and `low`.
 - If both barriers are touched on the same day, the sample is dropped as ambiguous.
+- The formal live pipeline is pure GLD and does not depend on external market data downloads.
 - `headline_score = 0.2*validation_f1 + 0.1*validation_bal_acc + 0.4*test_f1 + 0.3*test_bal_acc`.
 - `promotion_gate` requires `validation_bal_acc >= 0.52` and `test_bal_acc >= 0.54`.
 - In `results.tsv`, `status=live` means the algorithm currently used by `predict_latest.py` and the signal chart; `status=candidate` means a promising research direction that is not yet the live default.
