@@ -1,0 +1,49 @@
+# GLD Swing Entry
+
+This repo predicts medium-term GLD entry quality instead of short-term direction.
+
+## Goal
+
+The default target is:
+
+- `1`: within the next `60` trading days, GLD hits `+8%` before `-4%`
+- `0`: within the next `60` trading days, GLD hits `-4%` before `+8%`
+- `neutral`: neither barrier is hit first, or both are hit on the same day and ordering is ambiguous
+
+Neutral samples are dropped from training by default.
+
+## Why this target
+
+This framing is closer to a real swing-trade entry decision:
+
+- it encodes upside and downside together
+- it is longer-horizon than 3-day direction
+- it can be extended later into simple backtests and ranking models
+
+## Files
+
+- [prepare.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/prepare.py): downloads GLD daily data, builds features, and labels barrier outcomes
+- [train.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/train.py): trains a NumPy logistic baseline on the processed dataset
+- [results.tsv](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/results.tsv): experiment log
+- [task.md](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/task.md): next research tasks
+
+## Default target settings
+
+- horizon: `60` trading days
+- upper barrier: `+8%`
+- lower barrier: `-4%`
+- labeling style: `binary drop-neutral`
+
+## Usage
+
+```powershell
+$env:PYTHONPATH='C:\Users\Jay\OneDrive\文件\codex\gld-swing-entry\.packages'
+python prepare.py
+python train.py
+```
+
+## Notes
+
+- Barrier ordering uses daily `high` and `low`.
+- If both barriers are touched on the same day, the sample is dropped as ambiguous.
+- This is a baseline research repo, not a production trading system.
