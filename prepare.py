@@ -241,7 +241,8 @@ def add_features(frame: pd.DataFrame) -> pd.DataFrame:
     df[TARGET_COLUMN] = labels
     df["future_return_60"] = realized_returns
 
-    needed = FEATURE_COLUMNS + ["future_return_60"]
+    # Keep experimental features selectable without silently leaking NaNs into training.
+    needed = FEATURE_COLUMNS + EXPERIMENTAL_FEATURE_COLUMNS + ["future_return_60"]
     if config["label_mode"] != "keep-all-binary":
         needed.append(TARGET_COLUMN)
     df = df.replace([np.inf, -np.inf], np.nan)

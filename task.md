@@ -148,16 +148,37 @@
 
 ## 一、長週期特徵修正重跑
 
-- [ ] 補上實驗特徵的 NaN 處理策略，正式重跑 `ret_60`。Performance:
-- [ ] 補上實驗特徵的 NaN 處理策略，正式重跑 `drawdown_60`。Performance:
-- [ ] 補上實驗特徵的 NaN 處理策略，正式重跑 `sma_gap_60` 與 `volume_vs_60`。Performance:
+- [x] 補上實驗特徵的 NaN 處理策略，正式重跑 `ret_60`。Performance: NaN-clean 資料集為 `4347` 列，`ret_60` 重新變成有效特徵，`validation_f1=0.5868`, `validation_bal_acc=0.5345`, `test_f1=0.8128`, `test_bal_acc=0.5718`，整體優於 NaN-clean baseline。
+- [x] 補上實驗特徵的 NaN 處理策略，正式重跑 `drawdown_60`。Performance: `validation_f1=0.5824`, `validation_bal_acc=0.5333`, `test_f1=0.8078`, `test_bal_acc=0.5636`，未優於 NaN-clean baseline。
+- [x] 補上實驗特徵的 NaN 處理策略，正式重跑 `sma_gap_60` 與 `volume_vs_60`。Performance: `sma_gap_60` 為 `validation_f1=0.5917`, `validation_bal_acc=0.5428`, `test_f1=0.8083`, `test_bal_acc=0.5768`，validation 與平衡度最強；`volume_vs_60` 為 `validation_f1=0.5811`, `validation_bal_acc=0.5224`, `test_f1=0.8084`, `test_bal_acc=0.5516`，仍偏弱。
 
 ## 二、目前最佳設定再驗證
 
-- [ ] 對 `neg_weight = 1.1` 做 seed 與 walk-forward 驗證，確認 test 改善是否可重現。Performance:
-- [ ] 對 `range_z_20:drawdown_20` 做 seed 與 walk-forward 驗證，確認 validation 小幅提升是否可信。Performance:
+- [x] 對 `neg_weight = 1.1` 做 seed 與 walk-forward 驗證，確認 test 改善是否可重現。Performance: seed `1/2/3` 完全一致，但 forward folds 的 `test_f1=[0.6065, 0.7468, 0.0000]`、`test_bal_acc=[0.4986, 0.5262, 0.0000]` 波動極大，test 小幅改善不具穩定性。
+- [x] 對 `range_z_20:drawdown_20` 做 seed 與 walk-forward 驗證，確認 validation 小幅提升是否可信。Performance: seed `1/2/3` 完全一致，但 forward folds 的 `test_f1=[0.6047, 0.7526, 0.0000]`、`test_bal_acc=[0.5002, 0.5381, 0.0000]` 同樣不穩定，validation 小升幅不足以升級。
 
 ## 三、交易框架下一步
 
-- [ ] 為目前最佳設定建立簡單回測摘要，至少統計命中率、平均報酬與最大回撤。Performance:
-- [ ] 比較「現行 threshold 規則」與「top 20% ranking 規則」在簡單回測下的差異。Performance:
+- [x] 為目前最佳設定建立簡單回測摘要，至少統計命中率、平均報酬與最大回撤。Performance: 以 NaN-clean baseline 的 `threshold=0.433` 做簡化逐筆回測摘要，`selected_count=588`, `hit_rate=0.7075`, `avg_return=9.02%`, `max_drawdown=-84.70%`；顯示目前規則雖命中率高，但訊號過密時資金曲線品質很差。
+- [x] 比較「現行 threshold 規則」與「top 20% ranking 規則」在簡單回測下的差異。Performance: `top 20%` 規則選出 `131` 筆、`hit_rate=0.6870`, `avg_return=9.19%`, `max_drawdown=-35.33%`；雖命中率略低，但回撤明顯比現行 threshold 規則低。
+
+---
+
+# 再下下一輪研究任務
+
+## 一、長週期特徵正式升級驗證
+
+- [ ] 以 `ret_60` 為新候選最佳，做 seed 與 walk-forward 驗證。Performance:
+- [ ] 以 `sma_gap_60` 為新候選最佳，做 seed 與 walk-forward 驗證。Performance:
+- [ ] 測試 `ret_60 + drawdown_20:volume_vs_20` 是否可疊加。Performance:
+- [ ] 測試 `sma_gap_60 + drawdown_20:volume_vs_20` 是否可疊加。Performance:
+
+## 二、交易規則深化
+
+- [ ] 建立非重疊持倉的簡單回測，重新估算目前最佳規則的最大回撤。Performance:
+- [ ] 比較 `ret_60` 模型在 `threshold rule` 與 `top 20% ranking rule` 下的回測摘要。Performance:
+
+## 三、時段轉移排查
+
+- [ ] 比較 validation 與 test 區間的實際 barrier 命中分布，確認是否存在 regime shift。Performance:
+- [ ] 測試改用較晚起始年份訓練，是否能縮小 validation/test 落差。Performance:

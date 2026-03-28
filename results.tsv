@@ -18,3 +18,8 @@ commit_id	validation_f1	validation_accuracy	validation_bal_acc	test_f1	test_accu
 2441f56	0.0962	0.5972	0.5075	0.0310	0.3318	0.5032	discard	current best fixed threshold=0.49 is too selective for this classifier
 2441f56	0.2188	0.5299	0.4695	0.3141	0.3991	0.5051	discard	current best top-20-percent ranking filter does not improve barrier classification
 2441f56	0.1524	0.5743	0.4953	0.1811	0.3639	0.5049	discard	current best top-10-percent ranking filter is too sparse for current scores
+0fe5d35	0.5830	0.4494	0.5346	0.8086	0.6983	0.5660	keep	current best rerun on NaN-clean dataset after experimental feature fix
+0fe5d35	0.5868	0.4448	0.5345	0.8128	0.7044	0.5718	keep	add ret_60 after NaN cleanup; new best overall trade-off
+0fe5d35	0.5824	0.4479	0.5333	0.8078	0.6968	0.5636	discard	add drawdown_60 after NaN cleanup does not beat NaN-clean baseline
+0fe5d35	0.5917	0.4540	0.5428	0.8083	0.7014	0.5768	keep	add sma_gap_60 after NaN cleanup; strongest validation and bal_acc profile
+0fe5d35	0.5811	0.4294	0.5224	0.8084	0.6937	0.5516	discard	add volume_vs_60 after NaN cleanup remains weak
