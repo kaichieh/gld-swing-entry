@@ -1,9 +1,0 @@
-model_name	rule_name	trade_count	hit_rate	avg_return	max_drawdown_compound
-ranking_plus_rolling_vol_60	top_12.5pct	22	0.6364	0.0385	-0.1653
-ranking_plus_rolling_vol_60	top_15pct	23	0.6087	0.0354	-0.1141
-ranking_plus_rolling_vol_60	top_17.5pct	24	0.6667	0.0491	-0.0859
-ranking_plus_rolling_vol_60	top_20pct	24	0.6667	0.0476	-0.0859
-ranking_plus_atr_pct_20	top_12.5pct	21	0.7143	0.049	-0.1036
-ranking_plus_atr_pct_20	top_15pct	23	0.6522	0.0313	-0.1434
-ranking_plus_atr_pct_20	top_17.5pct	24	0.7083	0.0399	-0.1755
-ranking_plus_atr_pct_20	top_20pct	25	0.68	0.0333	-0.1755

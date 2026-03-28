@@ -1,9 +1,0 @@
-model_name	rule_name	sample_count	sample_ratio	trade_count	hit_rate	avg_return	max_drawdown_compound	reference_test_f1	reference_test_bal_acc	date_start	date_end
-binary_plus_rolling_vol_60	top_12.5pct	127	0.1255	13	0.6154	0.0489	-0.1122	0.8154	0.6048	2021-03-19	2026-03-19
-ranking_plus_rolling_vol_60	top_12.5pct	127	0.1255	15	0.7333	0.0453	-0.1803	0.8149	0.5201	2021-03-19	2026-03-19
-binary_plus_rolling_vol_60	top_15pct	152	0.1502	14	0.6429	0.0589	-0.1122	0.8154	0.6048	2021-03-19	2026-03-19
-ranking_plus_rolling_vol_60	top_15pct	152	0.1502	16	0.75	0.0617	-0.1803	0.8149	0.5201	2021-03-19	2026-03-19
-binary_plus_rolling_vol_60	top_17.5pct	177	0.1749	14	0.6429	0.0589	-0.1122	0.8154	0.6048	2021-03-19	2026-03-19
-ranking_plus_rolling_vol_60	top_17.5pct	177	0.1749	16	0.75	0.0572	-0.1847	0.8149	0.5201	2021-03-19	2026-03-19
-binary_plus_rolling_vol_60	top_20pct	203	0.2006	14	0.6429	0.0599	-0.1122	0.8154	0.6048	2021-03-19	2026-03-19
-ranking_plus_rolling_vol_60	top_20pct	203	0.2006	16	0.625	0.0449	-0.1847	0.8149	0.5201	2021-03-19	2026-03-19

@@ -1,6 +1,0 @@
-model_name	signal_name	sample_count	sample_ratio	hit_rate	avg_return	max_drawdown_compound	date_start	date_end	reference_test_f1	predicted_bucket
-binary_live	positive	905	0.8943	0.7193	0.0602	-0.9991	2021-03-19	2026-03-19	0.8136	
-binary_live	negative	107	0.1057	0.4206	0.0052	-0.9805	2021-03-19	2026-03-19	0.8136	
-three_bucket_baseline		267	0.2638	0.6929	0.0538	-0.9037	2021-03-19	2026-03-19	0.0	down
-three_bucket_baseline		332	0.3281	0.6476	0.0479	-0.9816	2021-03-19	2026-03-19	0.0	flat
-three_bucket_baseline		413	0.4081	0.7167	0.06	-0.9725	2021-03-19	2026-03-19	0.0	up

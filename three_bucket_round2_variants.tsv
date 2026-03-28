@@ -1,3 +1,0 @@
-variant_name	up_threshold	down_threshold	train_distribution	validation_distribution	test_distribution	validation_macro_f1	validation_accuracy	validation_bal_acc	test_macro_f1	test_accuracy	test_bal_acc
-up8_down4	0.08	-0.04	811/1379/750	187/315/128	68/222/340	0.2941	0.4413	0.3259	0.2124	0.2968	0.3085
-up8_down6	0.08	-0.06	523/1667/750	111/391/128	41/249/340	0.3087	0.6127	0.3536	0.2194	0.4127	0.3423

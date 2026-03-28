@@ -1,5 +1,0 @@
-model_name	validation_f1	validation_accuracy	validation_bal_acc	test_f1	test_accuracy	test_bal_acc	headline_score	promotion_gate
-ret_60_plus_sma_gap_60_live	0.5959	0.4619	0.5539	0.8136	0.7127	0.5947	0.6784	pass
-ret_60_plus_sma_gap_60_plus_atr_pct_20	0.5915	0.4651	0.5525	0.8096	0.7111	0.6028	0.6782	pass
-ret_60_plus_sma_gap_60_plus_up_day_ratio_20	0.5878	0.4524	0.5433	0.8116	0.7111	0.5962	0.6754	pass
-ret_60_plus_sma_gap_60_plus_close_location_20	0.601	0.4857	0.5696	0.7886	0.6825	0.5765	0.6655	pass
