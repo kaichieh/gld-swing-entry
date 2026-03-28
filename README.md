@@ -38,6 +38,7 @@ This framing is closer to a real swing-trade entry decision:
 - [predict_latest.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/predict_latest.py): scores the latest raw GLD bar without waiting for future labels
 - [chart_signals.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/chart_signals.py): exports an HTML chart of recent closes colored by live signal
 - [research_batch.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/research_batch.py): runs the current formal research batch and writes compact TSV/JSON summaries
+- [score_results.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/score_results.py): refreshes `headline_score` and `promotion_gate` in `results.tsv`
 - [results.tsv](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/results.tsv): experiment log
 - [task.md](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/task.md): next research tasks
 - [backtest_comparison.tsv](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/backtest_comparison.tsv): latest non-overlap backtest comparison table
@@ -65,4 +66,6 @@ python research_batch.py
 
 - Barrier ordering uses daily `high` and `low`.
 - If both barriers are touched on the same day, the sample is dropped as ambiguous.
+- `headline_score = 0.5*validation_f1 + 0.2*validation_bal_acc + 0.15*test_f1 + 0.15*test_bal_acc`.
+- `promotion_gate` requires `validation_bal_acc >= 0.52` and `test_bal_acc >= 0.54`.
 - This is a baseline research repo, not a production trading system.

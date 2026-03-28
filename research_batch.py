@@ -22,6 +22,14 @@ REGIME_OUTPUT_PATH = os.path.join(REPO_DIR, "regime_summary.tsv")
 ROUND_OUTPUT_PATH = os.path.join(CACHE_DIR, "research_batch.json")
 FUTURE_RETURN_COLUMN = "future_return_60"
 DEFAULT_INTERACTIONS = (("drawdown_20", "volume_vs_20"),)
+HEADLINE_SCORE_WEIGHTS = {
+    "validation_f1": 0.50,
+    "validation_bal_acc": 0.20,
+    "test_f1": 0.15,
+    "test_bal_acc": 0.15,
+}
+VALIDATION_BAL_ACC_GATE = 0.52
+TEST_BAL_ACC_GATE = 0.54
 
 
 @dataclass
@@ -64,6 +72,24 @@ class BacktestResult:
     longest_win_streak: int
     longest_loss_streak: int
     threshold_or_cutoff: float
+
+
+def compute_headline_score(
+    validation_f1: float,
+    validation_bal_acc: float,
+    test_f1: float,
+    test_bal_acc: float,
+) -> float:
+    return (
+        HEADLINE_SCORE_WEIGHTS["validation_f1"] * validation_f1
+        + HEADLINE_SCORE_WEIGHTS["validation_bal_acc"] * validation_bal_acc
+        + HEADLINE_SCORE_WEIGHTS["test_f1"] * test_f1
+        + HEADLINE_SCORE_WEIGHTS["test_bal_acc"] * test_bal_acc
+    )
+
+
+def passes_promotion_gate(validation_bal_acc: float, test_bal_acc: float) -> bool:
+    return validation_bal_acc >= VALIDATION_BAL_ACC_GATE and test_bal_acc >= TEST_BAL_ACC_GATE
 
 
 def ensure_cache_dir() -> None:
