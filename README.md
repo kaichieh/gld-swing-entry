@@ -36,6 +36,7 @@ This framing is closer to a real swing-trade entry decision:
 - [prepare.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/prepare.py): downloads GLD daily data, builds features, and labels barrier outcomes
 - [train.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/train.py): trains a NumPy logistic baseline on the processed dataset
 - [predict_latest.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/predict_latest.py): scores the latest raw GLD bar without waiting for future labels
+- [chart_signals.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/chart_signals.py): exports an HTML chart of recent closes colored by live signal
 - [results.tsv](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/results.tsv): experiment log
 - [task.md](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/task.md): next research tasks
 
@@ -53,6 +54,7 @@ $env:PYTHONPATH='C:\Users\Jay\OneDrive\文件\codex\gld-swing-entry\.packages'
 python prepare.py
 python train.py
 python predict_latest.py
+python chart_signals.py
 ```
 
 ## Notes
