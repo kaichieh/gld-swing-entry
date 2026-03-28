@@ -471,3 +471,16 @@
 
 - [ ] 正式測試 `ret_60 + sma_gap_60 + rolling_vol_60`，確認它在純 GLD cohort 上較高的 `test_f1/test_bal_acc` 是否能站住。Performance:
 - [ ] 若 `rolling_vol_60` 站得住，補做 `top 15% / top 17.5% / top 20%` walk-forward 規則比較，確認它提升的是模型面還是交易面。Performance:
+# 第 22 輪研究任務
+## ranking 首輪
+
+- [ ] 建立 `future_return_60` ranking target，先統計 train / validation / test 的報酬分布、分位數與年份差異。Performance:
+- [ ] 以目前 live 特徵組 `ret_60 + sma_gap_60` 訓練 ranking baseline，使用預測的 `future_return_60` 作為排序分數。Performance:
+- [ ] 在 ranking baseline 上加入 `atr_pct_20`，確認波動狀態特徵是否能提升 top-percentile 排序品質。Performance:
+- [ ] 在 ranking baseline 上加入 `rolling_vol_60`，確認它是否比 `atr_pct_20` 更適合 ranking 目標。Performance:
+
+## 與 binary live 對照
+
+- [ ] 比較 ranking baseline 與 binary live 在 `top 10% / 15% / 20%` 的 test 非重疊回測。Performance:
+- [ ] 比較 ranking baseline 與 binary live 在 `top 10% / 15% / 20%` 的 walk-forward 平均報酬、命中率與最大回撤。Performance:
+- [ ] 檢查 ranking 分數分位數是否有 forward return 單調性，確認 top decile 是否明顯優於中位數區間。Performance:
