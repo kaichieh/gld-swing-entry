@@ -215,8 +215,7 @@ def build_barrier_labels(
     return labels, realized_returns
 
 
-def add_features(frame: pd.DataFrame) -> pd.DataFrame:
-    config = get_runtime_config()
+def add_price_features(frame: pd.DataFrame) -> pd.DataFrame:
     df = frame.copy()
     df.columns = [column.lower() for column in df.columns]
     df["date"] = pd.to_datetime(df["date"])
@@ -282,7 +281,12 @@ def add_features(frame: pd.DataFrame) -> pd.DataFrame:
     df["outside_bar"] = ((high >= prev_high) & (low <= prev_low)).astype(float)
     df["gap_up_flag"] = (open_price > prev_body_high).astype(float)
     df["gap_down_flag"] = (open_price < prev_body_low).astype(float)
+    return df
 
+
+def add_features(frame: pd.DataFrame) -> pd.DataFrame:
+    config = get_runtime_config()
+    df = add_price_features(frame)
     labels, realized_returns = build_barrier_labels(
         df,
         int(config["horizon_days"]),
