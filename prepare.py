@@ -54,6 +54,19 @@ FEATURE_COLUMNS = [
     "upper_shadow",
 ]
 
+EXPERIMENTAL_FEATURE_COLUMNS = [
+    "ret_60",
+    "drawdown_60",
+    "volatility_20",
+    "volume_vs_60",
+    "sma_gap_60",
+    "range_z_20",
+    "gap_up_flag",
+    "gap_down_flag",
+    "inside_bar",
+    "outside_bar",
+]
+
 
 @dataclass(frozen=True)
 class DatasetSplit:
@@ -135,19 +148,24 @@ def add_features(frame: pd.DataFrame) -> pd.DataFrame:
     df["ret_5"] = close.pct_change(5)
     df["ret_10"] = close.pct_change(10)
     df["ret_20"] = close.pct_change(20)
+    df["ret_60"] = close.pct_change(60)
 
     df["sma_gap_5"] = close / close.rolling(5).mean() - 1.0
     df["sma_gap_10"] = close / close.rolling(10).mean() - 1.0
     df["sma_gap_20"] = close / close.rolling(20).mean() - 1.0
+    df["sma_gap_60"] = close / close.rolling(60).mean() - 1.0
 
     df["volatility_5"] = df["ret_1"].rolling(5).std()
     df["volatility_10"] = df["ret_1"].rolling(10).std()
+    df["volatility_20"] = df["ret_1"].rolling(20).std()
     df["range_pct"] = (high - low) / close
     df["volume_change_1"] = volume.pct_change(1)
     df["volume_vs_20"] = volume / volume.rolling(20).mean() - 1.0
+    df["volume_vs_60"] = volume / volume.rolling(60).mean() - 1.0
 
     df["breakout_20"] = (close > close.shift(1).rolling(20).max()).astype(float)
     df["drawdown_20"] = (close - close.rolling(20).max()) / close.rolling(20).max()
+    df["drawdown_60"] = (close - close.rolling(60).max()) / close.rolling(60).max()
 
     delta = close.diff()
     gain = delta.where(delta > 0, 0).rolling(14).mean()
@@ -165,6 +183,20 @@ def add_features(frame: pd.DataFrame) -> pd.DataFrame:
         high.to_numpy(dtype=np.float32)
         - np.maximum(open_price.to_numpy(dtype=np.float32), close.to_numpy(dtype=np.float32))
     ) / np.maximum(close.to_numpy(dtype=np.float32), eps)
+    df["range_z_20"] = (df["range_pct"] - df["range_pct"].rolling(20).mean()) / (
+        df["range_pct"].rolling(20).std() + 1e-10
+    )
+
+    prev_high = high.shift(1)
+    prev_low = low.shift(1)
+    prev_open = open_price.shift(1)
+    prev_close = close.shift(1)
+    prev_body_high = np.maximum(prev_open, prev_close)
+    prev_body_low = np.minimum(prev_open, prev_close)
+    df["inside_bar"] = ((high <= prev_high) & (low >= prev_low)).astype(float)
+    df["outside_bar"] = ((high >= prev_high) & (low <= prev_low)).astype(float)
+    df["gap_up_flag"] = (open_price > prev_body_high).astype(float)
+    df["gap_down_flag"] = (open_price < prev_body_low).astype(float)
 
     labels, realized_returns = build_barrier_labels(df)
     df[TARGET_COLUMN] = labels

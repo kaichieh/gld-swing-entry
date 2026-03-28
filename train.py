@@ -5,12 +5,13 @@ Train a NumPy logistic baseline for GLD swing-entry classification.
 from __future__ import annotations
 
 import math
+import os
 import random
 from dataclasses import dataclass
 
 import numpy as np
 
-from prepare import FEATURE_COLUMNS, HORIZON_DAYS, TARGET_COLUMN, load_splits
+from prepare import EXPERIMENTAL_FEATURE_COLUMNS, FEATURE_COLUMNS, HORIZON_DAYS, TARGET_COLUMN, load_splits
 
 SEED = 42
 LEARNING_RATE = 0.02
@@ -22,6 +23,7 @@ NEG_WEIGHT = 1.0
 THRESHOLD_MIN = 0.30
 THRESHOLD_MAX = 0.70
 THRESHOLD_STEPS = 401
+DEFAULT_INTERACTION_FEATURE_PAIRS = (("drawdown_20", "volume_vs_20"),)
 
 
 @dataclass
@@ -40,6 +42,37 @@ def set_seed(seed: int) -> None:
     np.random.seed(seed)
 
 
+def get_env_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    return float(value) if value is not None else default
+
+
+def get_env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    return int(value) if value is not None else default
+
+
+def get_env_csv(name: str, default: tuple[str, ...] = ()) -> tuple[str, ...]:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return default
+    return tuple(part.strip() for part in value.split(",") if part.strip())
+
+
+def get_env_interaction_pairs(name: str, default: tuple[tuple[str, str], ...] = ()) -> tuple[tuple[str, str], ...]:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return default
+    pairs: list[tuple[str, str]] = list(default)
+    for part in value.split(","):
+        left, sep, right = part.strip().partition(":")
+        if sep and left and right:
+            candidate = (left.strip(), right.strip())
+            if candidate not in pairs:
+                pairs.append(candidate)
+    return tuple(pairs)
+
+
 def sigmoid(values: np.ndarray) -> np.ndarray:
     clipped = np.clip(values, -30.0, 30.0)
     return 1.0 / (1.0 + np.exp(-clipped))
@@ -56,6 +89,41 @@ def add_bias(features: np.ndarray) -> np.ndarray:
     return np.concatenate([features, np.ones((features.shape[0], 1), dtype=features.dtype)], axis=1)
 
 
+def add_interaction_terms(
+    train_x: np.ndarray, validation_x: np.ndarray, test_x: np.ndarray, feature_names: list[str]
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    pairs = get_env_interaction_pairs("AR_EXTRA_INTERACTIONS", DEFAULT_INTERACTION_FEATURE_PAIRS)
+    if not pairs:
+        return train_x, validation_x, test_x
+    feature_index = {name: idx for idx, name in enumerate(feature_names)}
+    active_pairs = [(feature_index[left], feature_index[right]) for left, right in pairs if left in feature_index and right in feature_index]
+    if not active_pairs:
+        return train_x, validation_x, test_x
+
+    def augment(features: np.ndarray) -> np.ndarray:
+        extras = [features[:, i : i + 1] * features[:, j : j + 1] for i, j in active_pairs]
+        return np.concatenate([features] + extras, axis=1)
+
+    return augment(train_x), augment(validation_x), augment(test_x)
+
+
+def assemble_feature_matrices(
+    splits: dict[str, object],
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[str]]:
+    feature_names = list(FEATURE_COLUMNS)
+    for column in EXPERIMENTAL_FEATURE_COLUMNS:
+        if column in splits["train"].frame.columns and column in get_env_csv("AR_EXTRA_BASE_FEATURES"):
+            feature_names.append(column)
+    drop_features = set(get_env_csv("AR_DROP_FEATURES"))
+    feature_names = [name for name in feature_names if name not in drop_features]
+    return (
+        splits["train"].frame[feature_names].to_numpy(dtype=np.float32),
+        splits["validation"].frame[feature_names].to_numpy(dtype=np.float32),
+        splits["test"].frame[feature_names].to_numpy(dtype=np.float32),
+        feature_names,
+    )
+
+
 def classification_stats(probabilities: np.ndarray, labels: np.ndarray, threshold: float) -> tuple[float, float, float, float, np.ndarray]:
     predictions = (probabilities >= threshold).astype(np.float32)
     tp = float(((predictions == 1) & (labels == 1)).sum())
@@ -66,10 +134,13 @@ def classification_stats(probabilities: np.ndarray, labels: np.ndarray, threshol
 
 
 def select_threshold(probabilities: np.ndarray, labels: np.ndarray) -> float:
+    threshold_min = get_env_float("AR_THRESHOLD_MIN", THRESHOLD_MIN)
+    threshold_max = get_env_float("AR_THRESHOLD_MAX", THRESHOLD_MAX)
+    threshold_steps = get_env_int("AR_THRESHOLD_STEPS", THRESHOLD_STEPS)
     best_threshold = 0.5
     best_f1 = -1.0
     best_bal_acc = -1.0
-    for threshold in np.linspace(THRESHOLD_MIN, THRESHOLD_MAX, THRESHOLD_STEPS):
+    for threshold in np.linspace(threshold_min, threshold_max, threshold_steps):
         tp, tn, fp, fn, _ = classification_stats(probabilities, labels, float(threshold))
         precision = tp / max(tp + fp, 1.0)
         recall = tp / max(tp + fn, 1.0)
@@ -106,16 +177,23 @@ def compute_metrics(logits: np.ndarray, labels: np.ndarray, realized_returns: np
 
 
 def main() -> None:
-    set_seed(SEED)
+    seed = get_env_int("AR_SEED", SEED)
+    learning_rate = get_env_float("AR_LEARNING_RATE", LEARNING_RATE)
+    l2_reg = get_env_float("AR_L2_REG", L2_REG)
+    pos_weight = get_env_float("AR_POS_WEIGHT", POS_WEIGHT)
+    neg_weight = get_env_float("AR_NEG_WEIGHT", NEG_WEIGHT)
+    max_epochs = get_env_int("AR_MAX_EPOCHS", MAX_EPOCHS)
+    patience_limit = get_env_int("AR_PATIENCE", PATIENCE)
+
+    set_seed(seed)
     splits = load_splits()
-    train_x = splits["train"].features
-    validation_x = splits["validation"].features
-    test_x = splits["test"].features
+    train_x, validation_x, test_x, feature_names = assemble_feature_matrices(splits)
     train_y = splits["train"].labels
     validation_y = splits["validation"].labels
     test_y = splits["test"].labels
 
     train_x, validation_x, test_x = standardize(train_x, validation_x, test_x)
+    train_x, validation_x, test_x = add_interaction_terms(train_x, validation_x, test_x, feature_names)
     train_x = add_bias(train_x)
     validation_x = add_bias(validation_x)
     test_x = add_bias(test_x)
@@ -127,13 +205,13 @@ def main() -> None:
     best_epoch = -1
     epochs_without_improvement = 0
 
-    for epoch in range(1, MAX_EPOCHS + 1):
+    for epoch in range(1, max_epochs + 1):
         logits = train_x @ weights
         probs = sigmoid(logits)
-        sample_weights = np.where(train_y == 1.0, POS_WEIGHT, NEG_WEIGHT).astype(np.float32)
+        sample_weights = np.where(train_y == 1.0, pos_weight, neg_weight).astype(np.float32)
         gradient = train_x.T @ ((probs - train_y) * sample_weights) / train_x.shape[0]
-        gradient[:-1] += L2_REG * weights[:-1]
-        weights -= LEARNING_RATE * gradient
+        gradient[:-1] += l2_reg * weights[:-1]
+        weights -= learning_rate * gradient
 
         validation_logits = validation_x @ weights
         threshold = select_threshold(sigmoid(validation_logits), validation_y)
@@ -151,7 +229,7 @@ def main() -> None:
             epochs_without_improvement = 0
         else:
             epochs_without_improvement += 1
-        if epochs_without_improvement >= PATIENCE:
+        if epochs_without_improvement >= patience_limit:
             break
 
     train_metrics = compute_metrics(
@@ -177,7 +255,11 @@ def main() -> None:
     print(f"task:                 GLD_{HORIZON_DAYS}d_swing_entry")
     print(f"target_column:        {TARGET_COLUMN}")
     print(f"model:                logistic_regression")
-    print(f"features:             {len(FEATURE_COLUMNS)}")
+    print(f"features:             {len(feature_names)}")
+    print(f"learning_rate:        {learning_rate}")
+    print(f"l2_reg:               {l2_reg}")
+    print(f"pos_weight:           {pos_weight}")
+    print(f"neg_weight:           {neg_weight}")
     print(f"decision_threshold:   {best_threshold:.3f}")
     print(f"best_epoch:           {best_epoch}")
     print(f"train_accuracy:       {train_metrics.accuracy:.4f}")
