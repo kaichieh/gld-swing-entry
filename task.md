@@ -506,3 +506,18 @@
 ## ranking 暫存複驗
 
 - [ ] 若 binary `rolling_vol_60` 沒有順利升級，再對 `ranking + rolling_vol_60` 做一次分數校準或去極端值處理，檢查是否能改善 decile 單調性。Performance:
+# 第 25 輪研究任務
+## 第 24 輪結論
+
+- [x] `ret_60 + sma_gap_60 + rolling_vol_60` 在 seed `1/2/3` 完全一致，`validation_f1=0.5801`, `validation_bal_acc=0.5263`, `test_f1=0.8154`, `test_bal_acc=0.6048`。兩折 walk-forward 為 `test_f1=0.6049/0.7551`, `test_bal_acc=0.5182/0.5523`，平衡度整體優於目前 live，但 headline score 仍略低，因此目前維持 candidate，不直接升成 live。
+- [x] binary `rolling_vol_60` 的最佳交易密度是 `top 20%`，test `avg_return=10.54%`, `hit_rate=77.78%`，walk-forward `avg_return=4.82%`，全面優於 live 的 `top 20%` (`8.38%`, `71.43%`, `3.23%`)。這條線目前最像「交易規則升級」，而不是 threshold/live 模型升級。
+- [x] ranking `rolling_vol_60` 的最佳密度是 `top 17.5%`，walk-forward `avg_return=4.91%`。但最近 5 年直接對照下，binary `rolling_vol_60` 在 `top 12.5% / 17.5% / 20%` 仍較強，所以 ranking 暫列次要候選。
+
+## binary 主線最後收斂
+
+- [ ] 比較 `ret_60 + sma_gap_60 + rolling_vol_60` 的 `threshold` 訊號與 `top 20%` 規則，確認是否應把「正式 live 模型」與「正式 live 交易規則」分開管理。Performance:
+- [ ] 若 `top 20%` 明顯優於 threshold，設計一個不改模型、只改 live 解讀的摘要方案，讓圖表與即時輸出能區分「模型分數」與「實際採用規則」。Performance:
+
+## ranking 次線
+
+- [ ] 若 binary 主線確認不升級 threshold 版本，再對 `ranking + rolling_vol_60` 做簡單分數校準或 winsorize，檢查 decile 單調性是否能改善。Performance:
