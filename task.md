@@ -112,9 +112,9 @@
 
 ## 一、標記設計第二輪
 
-- [ ] 正式比較 `drop-neutral` 與 `keep-all binary` 的 baseline 表現。Performance:
-- [ ] 正式比較 `60d +8%/-4%` 與 `60d +6%/-3%` 的 baseline 表現。Performance:
-- [ ] 正式比較 `60d +8%/-4%` 與 `60d +10%/-5%` 的 baseline 表現。Performance:
+- [x] 正式比較 `drop-neutral` 與 `keep-all binary` 的 baseline 表現。Performance: `keep-all binary` 為 `validation_f1=0.5341`, `validation_bal_acc=0.5052`, `test_f1=0.7001`, `test_bal_acc=0.4993`，全面弱於目前 `drop-neutral` baseline。
+- [x] 正式比較 `60d +8%/-4%` 與 `60d +6%/-3%` 的 baseline 表現。Performance: `60d +6%/-3%` 為 `validation_f1=0.6080`, `validation_bal_acc=0.5319`, `test_f1=0.7231`, `test_bal_acc=0.4802`，validation 提升但 test 明顯退化。
+- [x] 正式比較 `60d +8%/-4%` 與 `60d +10%/-5%` 的 baseline 表現。Performance: `60d +10%/-5%` 為 `validation_f1=0.5167`, `validation_bal_acc=0.5378`, `test_f1=0.7277`, `test_bal_acc=0.5602`，validation_f1 明顯低於目前預設。
 
 ## 二、目前最佳模型深化
 

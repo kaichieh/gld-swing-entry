@@ -22,6 +22,7 @@ UPPER_BARRIER = 0.08
 LOWER_BARRIER = -0.04
 TRAIN_FRACTION = 0.70
 VALID_FRACTION = 0.15
+LABEL_MODE = "drop-neutral"
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 CACHE_DIR = os.path.join(REPO_DIR, ".cache", "gld-swing-entry")
@@ -75,23 +76,53 @@ class DatasetSplit:
     frame: pd.DataFrame
 
 
+def get_env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    return int(value) if value is not None else default
+
+
+def get_env_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    return float(value) if value is not None else default
+
+
+def get_env_str(name: str, default: str) -> str:
+    value = os.getenv(name)
+    return value.strip() if value is not None and value.strip() else default
+
+
+def get_runtime_config() -> dict[str, float | int | str]:
+    return {
+        "horizon_days": get_env_int("AR_HORIZON_DAYS", HORIZON_DAYS),
+        "upper_barrier": get_env_float("AR_UPPER_BARRIER", UPPER_BARRIER),
+        "lower_barrier": get_env_float("AR_LOWER_BARRIER", LOWER_BARRIER),
+        "label_mode": get_env_str("AR_LABEL_MODE", LABEL_MODE),
+    }
+
+
 def ensure_cache_dir() -> None:
     os.makedirs(CACHE_DIR, exist_ok=True)
 
 
 def download_gld_prices() -> pd.DataFrame:
     ensure_cache_dir()
-    response = requests.get(GLD_STOOQ_URL, timeout=30)
-    response.raise_for_status()
-    with open(RAW_DATA_PATH, "w", encoding="utf-8", newline="") as f:
-        f.write(response.text)
+    try:
+        response = requests.get(GLD_STOOQ_URL, timeout=30)
+        response.raise_for_status()
+        with open(RAW_DATA_PATH, "w", encoding="utf-8", newline="") as f:
+            f.write(response.text)
+    except Exception:
+        if not os.path.exists(RAW_DATA_PATH):
+            raise
     frame = pd.read_csv(RAW_DATA_PATH)
     if frame.empty:
         raise RuntimeError("Downloaded GLD dataset is empty.")
     return frame
 
 
-def build_barrier_labels(df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+def build_barrier_labels(
+    df: pd.DataFrame, horizon_days: int, upper_barrier: float, lower_barrier: float
+) -> tuple[np.ndarray, np.ndarray]:
     closes = df["close"].to_numpy(dtype=np.float64)
     highs = df["high"].to_numpy(dtype=np.float64)
     lows = df["low"].to_numpy(dtype=np.float64)
@@ -100,7 +131,7 @@ def build_barrier_labels(df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
 
     for idx in range(len(df)):
         entry = closes[idx]
-        end = min(len(df), idx + HORIZON_DAYS + 1)
+        end = min(len(df), idx + horizon_days + 1)
         if idx + 1 >= end:
             continue
         future_highs = highs[idx + 1 : end] / entry - 1.0
@@ -108,8 +139,8 @@ def build_barrier_labels(df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
         future_closes = closes[idx + 1 : end] / entry - 1.0
         realized_returns[idx] = future_closes[-1]
 
-        hit_upper = np.where(future_highs >= UPPER_BARRIER)[0]
-        hit_lower = np.where(future_lows <= LOWER_BARRIER)[0]
+        hit_upper = np.where(future_highs >= upper_barrier)[0]
+        hit_lower = np.where(future_lows <= lower_barrier)[0]
         upper_idx = int(hit_upper[0]) if hit_upper.size else None
         lower_idx = int(hit_lower[0]) if hit_lower.size else None
 
@@ -132,6 +163,7 @@ def build_barrier_labels(df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
 
 
 def add_features(frame: pd.DataFrame) -> pd.DataFrame:
+    config = get_runtime_config()
     df = frame.copy()
     df.columns = [column.lower() for column in df.columns]
     df["date"] = pd.to_datetime(df["date"])
@@ -198,11 +230,20 @@ def add_features(frame: pd.DataFrame) -> pd.DataFrame:
     df["gap_up_flag"] = (open_price > prev_body_high).astype(float)
     df["gap_down_flag"] = (open_price < prev_body_low).astype(float)
 
-    labels, realized_returns = build_barrier_labels(df)
+    labels, realized_returns = build_barrier_labels(
+        df,
+        int(config["horizon_days"]),
+        float(config["upper_barrier"]),
+        float(config["lower_barrier"]),
+    )
+    if config["label_mode"] == "keep-all-binary":
+        labels = np.where(np.isnan(labels), 0.0, labels)
     df[TARGET_COLUMN] = labels
     df["future_return_60"] = realized_returns
 
-    needed = FEATURE_COLUMNS + [TARGET_COLUMN, "future_return_60"]
+    needed = FEATURE_COLUMNS + ["future_return_60"]
+    if config["label_mode"] != "keep-all-binary":
+        needed.append(TARGET_COLUMN)
     df = df.replace([np.inf, -np.inf], np.nan)
     df = df.dropna(subset=needed).reset_index(drop=True)
     return df
@@ -217,14 +258,16 @@ def split_indices(num_rows: int) -> tuple[int, int]:
 
 
 def save_processed_dataset(df: pd.DataFrame) -> None:
+    config = get_runtime_config()
     train_end, valid_end = split_indices(len(df))
     ensure_cache_dir()
     df.to_csv(PROCESSED_DATA_PATH, index=False)
     metadata = {
         "symbol": "GLD",
-        "horizon_days": HORIZON_DAYS,
-        "upper_barrier": UPPER_BARRIER,
-        "lower_barrier": LOWER_BARRIER,
+        "horizon_days": int(config["horizon_days"]),
+        "upper_barrier": float(config["upper_barrier"]),
+        "lower_barrier": float(config["lower_barrier"]),
+        "label_mode": str(config["label_mode"]),
         "feature_columns": FEATURE_COLUMNS,
         "target_column": TARGET_COLUMN,
         "train_rows": train_end,
@@ -276,11 +319,19 @@ def describe_dataset(df: pd.DataFrame) -> str:
 
 
 def main() -> None:
+    config = get_runtime_config()
     print("Downloading GLD daily prices...")
     raw = download_gld_prices()
     processed = add_features(raw)
     save_processed_dataset(processed)
     print("Prepared dataset:")
+    print(
+        "Label config: "
+        f"horizon={config['horizon_days']}, "
+        f"upper={float(config['upper_barrier']):.2%}, "
+        f"lower={float(config['lower_barrier']):.2%}, "
+        f"mode={config['label_mode']}"
+    )
     print(describe_dataset(processed))
     print(f"Processed data saved to: {PROCESSED_DATA_PATH}")
 
