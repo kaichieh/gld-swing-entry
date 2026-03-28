@@ -545,3 +545,21 @@
 - [ ] 正式決定是否把「live 模型」與「adopted trading rule」分開管理；若分開，需定義各自的命名與輸出欄位。Performance:
 - [ ] 若決定分開管理，補一輪最近 30/60 個交易日對照，檢查當前 `live` threshold 與 `rolling_vol_60 top 20%` 的訊號重疊度與差異天數。Performance:
 - [ ] 若決定不分開管理，則停止 `rolling_vol_60` 規則線，回到目前 `live` binary 路徑並只保留研究紀錄。Performance:
+
+---
+
+# 第 28 輪研究任務
+## 第 27 輪結果
+
+- [x] 完成第一輪對稱 exit/risk-off 研究。Performance: 以 `60d / -8% before +4% / drop-neutral` 定義 exit target 後，train / validation / test 的 exit 正類率為 `22.61% / 24.23% / 4.22%`，recent test 幾乎沒有 exit 樣本；baseline `validation_f1=0.3926`, `test_f1=0.0800`, `test_bal_acc=0.4943`，加入 `ret_60+sma_gap_60` 與 `rolling_vol_60` 都沒有改善，說明目前這個對稱 exit label 幾乎完全被 regime shift 壓垮
+
+## binary 主線
+
+- [ ] 正式決定是否把「live 模型」與「adopted trading rule」分開管理；若分開，需定義各自的命名與輸出欄位。Performance:
+- [ ] 若決定分開管理，補一輪最近 30/60 個交易日對照，檢查當前 `live` threshold 與 `rolling_vol_60 top 20%` 的訊號重疊度與差異天數。Performance:
+- [ ] 若決定不分開管理，則停止 `rolling_vol_60` 規則線，回到目前 `live` binary 路徑並只保留研究紀錄。Performance:
+
+## exit 後續方向
+
+- [ ] 若要繼續做 exit，改成更實用的風控定義再試一次，例如未來 `60d` 最大回撤是否超過 `-7%`，而不是對稱的 `-8% before +4%` barrier。Performance:
+- [ ] 若要繼續做 exit，先統計最近 10 年與最近 5 年的 exit label 分布，確認是不是近年多頭 regime 讓對稱 exit target 幾乎失去樣本。Performance:
