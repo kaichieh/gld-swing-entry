@@ -93,3 +93,6 @@ f67a6ce	0.5225	0.3846	0.5242	0.8261	0.7265	0.5951	0.6659	pass	discard	ret_60 plu
 0a2e212	0.2995	0.3016	0.3122	0.2971	0.3556	0.3078	0.3023	fail	discard	three-bucket plus atr_pct_20 does not improve macro_f1 or balanced accuracy versus the baseline
 0a2e212	0.3078	0.3079	0.3154	0.2809	0.3317	0.2997	0.2954	fail	discard	three-bucket plus up_day_ratio_20 lifts validation macro_f1 slightly but breaks test generalization
 0a2e212	0.3054	0.3079	0.3162	0.2972	0.3476	0.3175	0.3068	fail	discard	three-bucket plus close_location_20 is the cleanest validation variant but still trails the baseline on test macro_f1
+4dc1f40	0.2941	0.4413	0.3259	0.2124	0.2968	0.3085	0.2743	fail	discard	three-bucket up8 down4 shifts more samples into flat but collapses test macro_f1 and does not solve the regime problem
+4dc1f40	0.3087	0.6127	0.3536	0.2194	0.4127	0.3423	0.2981	fail	discard	three-bucket up8 down6 is the cleanest second-round boundary variant but still remains far below useful test quality
+4dc1f40	0.2839	0.3476	0.2924	0.3109	0.4048	0.3207	0.2983	fail	discard	three-bucket regime-aware split by above_200dma does not materially improve the baseline and ends the three-bucket branch

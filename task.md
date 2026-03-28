@@ -462,3 +462,12 @@
 ## 純 GLD 主線補充
 
 - [ ] 重新檢查 `ret_60 + sma_gap_60 + rolling_vol_60`，確認它在純 GLD 正式 cohort 上較高的 `test_f1/test_bal_acc` 是否值得進入主線候選。Performance:
+# 第 21 輪研究任務
+## 3 桶結論
+
+- [x] 對 3 桶做最後一輪驗證，包含 `up >= +8% / down <= -4%`、`up >= +8% / down <= -6%` 兩組更保守邊界，以及 `above_200dma` 的簡單 regime-aware 分模。Performance: `up8_down4` 的 `test_macro_f1=0.2124`, `test_bal_acc=0.3085`；`up8_down6` 也只有 `0.2194 / 0.3423`。`above_200dma` 分模後 `test_macro_f1=0.3109`, `test_bal_acc=0.3207`，仍未實質改善。結論：3 桶支線停止，不再列入後續正式 backlog。
+
+## 純 GLD 主線延伸
+
+- [ ] 正式測試 `ret_60 + sma_gap_60 + rolling_vol_60`，確認它在純 GLD cohort 上較高的 `test_f1/test_bal_acc` 是否能站住。Performance:
+- [ ] 若 `rolling_vol_60` 站得住，補做 `top 15% / top 17.5% / top 20%` walk-forward 規則比較，確認它提升的是模型面還是交易面。Performance:
