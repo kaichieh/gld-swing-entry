@@ -227,25 +227,47 @@
 
 ## 一、雙長週期組合正式升級驗證
 
-- [ ] 以 `ret_60 + sma_gap_60` 為新候選最佳，做 seed 與 walk-forward 驗證。Performance:
-- [ ] 比較 `ret_60 + sma_gap_60` 與 `ret_60` 在 forward folds 中的 `test_f1`、`test_bal_acc` 與預測正類率。Performance:
-- [ ] 測試 `ret_60 + sma_gap_60 + neg_weight=1.1`，確認雙長週期組合是否仍能受益於較高負類權重。Performance:
-- [ ] 測試 `ret_60 + sma_gap_60` 再加入 `rolling_vol_60`，確認唯一相對不差的 regime 候選是否能在雙特徵模型上帶來增益。Performance:
+- [x] 以 `ret_60 + sma_gap_60` 為新候選最佳，做 seed 與 walk-forward 驗證。Performance: seed `1/2/3` 完全一致，當前切分下維持 `validation_f1=0.5928`, `validation_bal_acc=0.5460`, `test_f1=0.8088`, `test_bal_acc=0.5948`；forward folds 為 `test_f1=[0.5971, 0.7466]`, `test_bal_acc=[0.5114, 0.5285]`，仍受 regime 影響，但比單獨 `ret_60` 略穩。
+- [x] 比較 `ret_60 + sma_gap_60` 與 `ret_60` 在 forward folds 中的 `test_f1`、`test_bal_acc` 與預測正類率。Performance: combo 在兩折的 `test_f1` 為 `0.5971/0.7466`，略低於或接近 `ret_60` 的 `0.6035/0.7429`，但 `test_bal_acc` 提升到 `0.5114/0.5285`，且 `predicted_positive_rate` 降到 `0.8953/0.9402`，比 `ret_60` 的 `0.9574/0.9448` 更收斂。
+- [x] 測試 `ret_60 + sma_gap_60 + neg_weight=1.1`，確認雙長週期組合是否仍能受益於較高負類權重。Performance: `validation_f1=0.5931`, `validation_bal_acc=0.5454` 接近原版，但 `test_f1=0.8040`, `test_bal_acc=0.5903` 略退，沒有額外收益。
+- [x] 測試 `ret_60 + sma_gap_60` 再加入 `rolling_vol_60`，確認唯一相對不差的 regime 候選是否能在雙特徵模型上帶來增益。Performance: `validation_f1=0.5813`, `validation_bal_acc=0.5192`, `test_f1=0.8087`, `test_bal_acc=0.5852`；整體弱於純 combo，不值得保留。
 
 ## 二、雙長週期組合交易規則深化
 
-- [ ] 對 `ret_60 + sma_gap_60` 模型測 `threshold`、`top 10%`、`top 15%`、`top 20%` 的非重疊持倉回測。Performance:
-- [ ] 對 `ret_60 + sma_gap_60` 模型測 `bullish+` 與 `strong_bullish+` 兩種 signal 分級規則。Performance:
-- [ ] 比較 `ret_60 + sma_gap_60` 與 `ret_60`、`sma_gap_60` 三者在相同非重疊假設下的交易次數、平均報酬與最大回撤。Performance:
+- [x] 對 `ret_60 + sma_gap_60` 模型測 `threshold`、`top 10%`、`top 15%`、`top 20%` 的非重疊持倉回測。Performance: `threshold` 為 `11` 筆、`hit_rate=0.9091`, `avg_return=8.15%`, `max_drawdown_compound=-5.41%`；`top 10%` 為 `7` 筆、`avg_return=7.86%`；`top 15%` 為 `9` 筆、`avg_return=10.39%`, `max_drawdown_compound=-6.80%`；`top 20%` 也有 `9` 筆、`avg_return=10.29%`，其中 `top 15%` 最平衡。
+- [x] 對 `ret_60 + sma_gap_60` 模型測 `bullish+` 與 `strong_bullish+` 兩種 signal 分級規則。Performance: `bullish+` 與 `top 20%` 幾乎等價，`9` 筆、`avg_return=10.29%`；`strong_bullish+` 僅 `7` 筆、`avg_return=7.35%`, `max_drawdown_compound=-6.80%`，過度嚴格反而變弱。
+- [x] 比較 `ret_60 + sma_gap_60` 與 `ret_60`、`sma_gap_60` 三者在相同非重疊假設下的交易次數、平均報酬與最大回撤。Performance: 三者 `threshold` 規則都產生 `11` 筆與 `-5.41%` 複利最大回撤，但 combo 的 `avg_return=8.15%` 略高；精選規則下，combo `top 15%/20%` 的 `10.39%/10.29%` 優於 `ret_60 top 20%` 的 `9.91%`，略低於 `sma_gap_60 top 15%` 的 `10.59%`，屬於更平衡的中間解。
 
 ## 三、正類偏高問題收斂
 
-- [ ] 對 `ret_60 + sma_gap_60` 比較 `threshold_steps=401` 與更窄的高分區間 threshold 掃描，觀察是否能降低預測正類率而不傷 `validation_f1`。Performance:
-- [ ] 對 `ret_60 + sma_gap_60` 測試固定 threshold `0.47`、`0.49`、`0.51` 的分類與非重疊回測摘要。Performance:
-- [ ] 統計 `ret_60 + sma_gap_60` 在 validation/test 的 `predicted_positive_rate`、precision、recall，確認是否比單特徵版本更接近可交易密度。Performance:
+- [x] 對 `ret_60 + sma_gap_60` 比較 `threshold_steps=401` 與更窄的高分區間 threshold 掃描，觀察是否能降低預測正類率而不傷 `validation_f1`。Performance: `401/801/1201` 三組的 `validation_f1` 完全相同，門檻只在 `0.4610~0.4625` 間微調；`801` 反而讓 `test_f1` 小降到 `0.8076`，不能有效收斂正類率。
+- [x] 對 `ret_60 + sma_gap_60` 測試固定 threshold `0.47`、`0.49`、`0.51` 的分類與非重疊回測摘要。Performance: `0.47` 有 `11` 筆、`avg_return=7.40%`；`0.49` 降到 `8` 筆但 `avg_return=9.53%`；`0.51` 只剩 `2` 筆、`avg_return=2.51%`，過度保守。若要收斂交易密度，`0.49` 是較可討論的固定門檻。
+- [x] 統計 `ret_60 + sma_gap_60` 在 validation/test 的 `predicted_positive_rate`、precision、recall，確認是否比單特徵版本更接近可交易密度。Performance: validation 為 `predicted_positive_rate=0.9294`, `precision=0.4241`, `recall=0.9847`；test 為 `0.8545`, `0.7240`, `0.9161`。相較 `ret_60`，combo 的正類率更低、precision 更高，確實較接近可交易密度。
 
 ## 四、新長週期候選延伸
 
-- [ ] 建立並測試 `ret_120`。Performance:
-- [ ] 建立並測試 `sma_gap_120`。Performance:
-- [ ] 測試 `ret_60:sma_gap_60` interaction，確認雙長週期特徵之間是否存在額外非線性訊號。Performance:
+- [x] 建立並測試 `ret_120`。Performance: `validation_f1=0.5724`, `validation_bal_acc=0.5013`, `test_f1=0.8062`, `test_bal_acc=0.5000`；幾乎走向全正類，沒有研究價值。
+- [x] 建立並測試 `sma_gap_120`。Performance: `validation_f1=0.5831`, `validation_bal_acc=0.5288`, `test_f1=0.8077`, `test_bal_acc=0.5588`；比 `ret_120` 好，但仍明顯弱於 `sma_gap_60` 與雙長週期 combo。
+- [x] 測試 `ret_60:sma_gap_60` interaction，確認雙長週期特徵之間是否存在額外非線性訊號。Performance: `validation_f1=0.6074`, `validation_bal_acc=0.5767` 很亮眼，但 `test_f1=0.7304`、`test_positive_rate=0.6539` 明顯崩掉，屬於 validation overfit 而非正式突破。
+
+---
+
+# 再下下下下下一輪研究任務
+
+## 一、雙長週期組合正式升級決戰
+
+- [ ] 以 `ret_60 + sma_gap_60` 做更完整 walk-forward，至少補到 4-fold 並整理成正式對照表。Performance:
+- [ ] 比較 `ret_60 + sma_gap_60` 與 `sma_gap_60 top 15%` 的 forward 交易摘要，確認分類最佳與交易最佳是否其實是不同策略。Performance:
+- [ ] 對 `ret_60 + sma_gap_60` 測 `neg_weight=1.05` 與 `1.15`，確認是否存在比 `1.1` 更溫和的平衡點。Performance:
+
+## 二、交易密度控制
+
+- [ ] 對 `ret_60 + sma_gap_60` 比較自動 threshold、固定 `0.49`、`top 15%`、`top 20%` 的非重疊回測與 precision/recall。Performance:
+- [ ] 為 `ret_60 + sma_gap_60` 加入「每次訊號後至少冷卻 N 天」的簡單規則，比較 `N=5`、`10`。Performance:
+- [ ] 產出 `ret_60 + sma_gap_60` 的 signal 分級統計，包含 `weak/bullish/strong/very_strong` 各級樣本數、命中率與平均報酬。Performance:
+
+## 三、延伸長週期候選
+
+- [ ] 建立並測試 `drawdown_120`。Performance:
+- [ ] 建立並測試 `volume_vs_120`。Performance:
+- [ ] 測試 `sma_gap_60 + sma_gap_120`，確認均線長週期疊加是否比報酬型長週期更自然。Performance:

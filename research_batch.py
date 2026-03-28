@@ -43,6 +43,16 @@ class ModelResult:
 
 
 @dataclass
+class ForwardFoldResult:
+    fold_name: str
+    validation_f1: float
+    validation_bal_acc: float
+    test_f1: float
+    test_bal_acc: float
+    test_positive_rate: float
+
+
+@dataclass
 class BacktestResult:
     model_name: str
     rule_name: str
@@ -65,6 +75,8 @@ def add_regime_features(frame: pd.DataFrame) -> pd.DataFrame:
     df["year"] = df["date"].dt.year.astype(float)
     df["rolling_return_120"] = df["close"].pct_change(120)
     df["rolling_vol_60"] = df["ret_1"].rolling(60).std()
+    df["ret_120"] = df["close"].pct_change(120)
+    df["sma_gap_120"] = df["close"] / df["close"].rolling(120).mean() - 1.0
     return df
 
 
@@ -169,6 +181,8 @@ def train_model(
     extra_features: tuple[str, ...] = (),
     drop_features: tuple[str, ...] = (),
     extra_interactions: tuple[tuple[str, str], ...] = (),
+    neg_weight: float | None = None,
+    threshold_steps: int | None = None,
 ) -> tuple[ModelResult, dict[str, object]]:
     feature_names = get_feature_names(extra_features, drop_features)
     splits = split_frame(frame)
@@ -186,16 +200,19 @@ def train_model(
     best_threshold = 0.5
     epochs_without_improvement = 0
 
+    neg_weight = tr.NEG_WEIGHT if neg_weight is None else neg_weight
+    threshold_steps = tr.THRESHOLD_STEPS if threshold_steps is None else threshold_steps
+
     for _epoch in range(1, tr.MAX_EPOCHS + 1):
         logits = train_x @ weights
         probs = tr.sigmoid(logits)
-        sample_weights = np.where(train_y == 1.0, tr.POS_WEIGHT, tr.NEG_WEIGHT).astype(np.float32)
+        sample_weights = np.where(train_y == 1.0, tr.POS_WEIGHT, neg_weight).astype(np.float32)
         gradient = train_x.T @ ((probs - train_y) * sample_weights) / train_x.shape[0]
         gradient[:-1] += tr.L2_REG * weights[:-1]
         weights -= tr.LEARNING_RATE * gradient
 
         validation_logits = validation_x @ weights
-        threshold = tr.select_threshold(tr.sigmoid(validation_logits), validation_y)
+        threshold = select_threshold_with_steps(tr.sigmoid(validation_logits), validation_y, threshold_steps)
         validation_metrics = tr.compute_metrics(
             validation_logits,
             validation_y,
@@ -252,8 +269,27 @@ def train_model(
         "clean_splits": clean_splits,
         "test_probabilities": tr.sigmoid(test_logits),
         "validation_probabilities": tr.sigmoid(validation_logits),
+        "neg_weight": neg_weight,
     }
     return result, artifacts
+
+
+def select_threshold_with_steps(probabilities: np.ndarray, labels: np.ndarray, threshold_steps: int) -> float:
+    best_threshold = 0.5
+    best_f1 = -1.0
+    best_bal_acc = -1.0
+    for threshold in np.linspace(tr.THRESHOLD_MIN, tr.THRESHOLD_MAX, threshold_steps):
+        tp, tn, fp, fn, _ = tr.classification_stats(probabilities, labels, float(threshold))
+        precision = tp / max(tp + fp, 1.0)
+        recall = tp / max(tp + fn, 1.0)
+        specificity = tn / max(tn + fp, 1.0)
+        f1 = 2 * precision * recall / max(precision + recall, 1e-8)
+        bal_acc = 0.5 * (recall + specificity)
+        if f1 > best_f1 or (abs(f1 - best_f1) < 1e-8 and bal_acc > best_bal_acc):
+            best_threshold = float(threshold)
+            best_f1 = f1
+            best_bal_acc = bal_acc
+    return best_threshold
 
 
 def longest_streak(returns: np.ndarray, positive: bool) -> int:
@@ -330,6 +366,15 @@ def backtest_rules(model_name: str, artifacts: dict[str, object]) -> list[Backte
         dtype=bool,
     )
     selections["bullish_plus"] = (bullish_plus, threshold)
+    strong_plus = np.array(
+        [
+            live.classify_signal(float(prob), threshold, historical_probs)[0]
+            in {"strong_bullish", "very_strong_bullish"}
+            for prob in probs
+        ],
+        dtype=bool,
+    )
+    selections["strong_bullish_plus"] = (strong_plus, threshold)
 
     for rule_name, (selected, cutoff) in selections.items():
         result = run_non_overlap_backtest(
@@ -337,6 +382,136 @@ def backtest_rules(model_name: str, artifacts: dict[str, object]) -> list[Backte
         )
         result.model_name = model_name
         result.rule_name = rule_name
+        rows.append(result)
+    return rows
+
+
+def fixed_threshold_backtests(model_name: str, artifacts: dict[str, object], thresholds: tuple[float, ...]) -> list[BacktestResult]:
+    test_frame = artifacts["clean_splits"]["test"]
+    probs = np.asarray(artifacts["test_probabilities"], dtype=np.float64)
+    future_returns = test_frame[FUTURE_RETURN_COLUMN].to_numpy(dtype=np.float64)
+    rows: list[BacktestResult] = []
+    for threshold in thresholds:
+        result = run_non_overlap_backtest(test_frame["date"], future_returns, probs >= threshold, pr.HORIZON_DAYS, threshold)
+        result.model_name = model_name
+        result.rule_name = f"fixed_{threshold:.2f}"
+        rows.append(result)
+    return rows
+
+
+def precision_recall(probabilities: np.ndarray, labels: np.ndarray, threshold: float) -> dict[str, float]:
+    tp, tn, fp, fn, predictions = tr.classification_stats(probabilities, labels, threshold)
+    precision = tp / max(tp + fp, 1.0)
+    recall = tp / max(tp + fn, 1.0)
+    return {
+        "predicted_positive_rate": float(predictions.mean()),
+        "precision": float(precision),
+        "recall": float(recall),
+    }
+
+
+def walk_forward_splits(frame: pd.DataFrame, folds: int = 3) -> list[tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
+    total = len(frame)
+    fold_size = total // (folds + 2)
+    splits: list[tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]] = []
+    for fold_idx in range(folds):
+        train_end = fold_size * (fold_idx + 2)
+        validation_end = train_end + fold_size
+        test_end = min(validation_end + fold_size, total)
+        if test_end - validation_end < max(30, fold_size // 2):
+            break
+        train = frame.iloc[:train_end].copy().reset_index(drop=True)
+        validation = frame.iloc[train_end:validation_end].copy().reset_index(drop=True)
+        test = frame.iloc[validation_end:test_end].copy().reset_index(drop=True)
+        splits.append((train, validation, test))
+    return splits
+
+
+def fit_on_custom_splits(
+    train_frame: pd.DataFrame,
+    validation_frame: pd.DataFrame,
+    test_frame: pd.DataFrame,
+    feature_names: list[str],
+    neg_weight: float = tr.NEG_WEIGHT,
+) -> ForwardFoldResult:
+    splits = {"train": train_frame, "validation": validation_frame, "test": test_frame}
+    clean_splits, matrices, _mean, _std, _pairs = prepare_feature_matrices(splits, feature_names)
+    train_x = matrices["train"]
+    validation_x = matrices["validation"]
+    test_x = matrices["test"]
+    train_y = clean_splits["train"][pr.TARGET_COLUMN].to_numpy(dtype=np.float32)
+    validation_y = clean_splits["validation"][pr.TARGET_COLUMN].to_numpy(dtype=np.float32)
+    test_y = clean_splits["test"][pr.TARGET_COLUMN].to_numpy(dtype=np.float32)
+    weights = np.zeros(train_x.shape[1], dtype=np.float32)
+    best_weights = weights.copy()
+    best_validation_f1 = -np.inf
+    best_threshold = 0.5
+    epochs_without_improvement = 0
+
+    for _epoch in range(1, tr.MAX_EPOCHS + 1):
+        probs = tr.sigmoid(train_x @ weights)
+        sample_weights = np.where(train_y == 1.0, tr.POS_WEIGHT, neg_weight).astype(np.float32)
+        gradient = train_x.T @ ((probs - train_y) * sample_weights) / train_x.shape[0]
+        gradient[:-1] += tr.L2_REG * weights[:-1]
+        weights -= tr.LEARNING_RATE * gradient
+        validation_logits = validation_x @ weights
+        threshold = select_threshold_with_steps(tr.sigmoid(validation_logits), validation_y, tr.THRESHOLD_STEPS)
+        validation_metrics = tr.compute_metrics(
+            validation_logits,
+            validation_y,
+            clean_splits["validation"][FUTURE_RETURN_COLUMN].to_numpy(dtype=np.float32),
+            threshold,
+        )
+        if validation_metrics.f1 > best_validation_f1:
+            best_validation_f1 = validation_metrics.f1
+            best_weights = weights.copy()
+            best_threshold = threshold
+            epochs_without_improvement = 0
+        else:
+            epochs_without_improvement += 1
+        if epochs_without_improvement >= tr.PATIENCE:
+            break
+
+    validation_metrics = tr.compute_metrics(
+        validation_x @ best_weights,
+        validation_y,
+        clean_splits["validation"][FUTURE_RETURN_COLUMN].to_numpy(dtype=np.float32),
+        best_threshold,
+    )
+    test_metrics = tr.compute_metrics(
+        test_x @ best_weights,
+        test_y,
+        clean_splits["test"][FUTURE_RETURN_COLUMN].to_numpy(dtype=np.float32),
+        best_threshold,
+    )
+    return ForwardFoldResult(
+        fold_name="",
+        validation_f1=validation_metrics.f1,
+        validation_bal_acc=validation_metrics.balanced_accuracy,
+        test_f1=test_metrics.f1,
+        test_bal_acc=test_metrics.balanced_accuracy,
+        test_positive_rate=test_metrics.positive_rate,
+    )
+
+
+def evaluate_seeds(frame: pd.DataFrame, extra_features: tuple[str, ...], neg_weight: float = tr.NEG_WEIGHT) -> list[ModelResult]:
+    feature_names = get_feature_names(extra_features)
+    results: list[ModelResult] = []
+    for seed in (1, 2, 3):
+        np.random.seed(seed)
+        result, _ = train_model(frame, f"seed_{seed}", extra_features=extra_features, neg_weight=neg_weight)
+        result.name = f"seed_{seed}"
+        result.feature_names = feature_names
+        results.append(result)
+    return results
+
+
+def evaluate_walk_forward(frame: pd.DataFrame, extra_features: tuple[str, ...], neg_weight: float = tr.NEG_WEIGHT) -> list[ForwardFoldResult]:
+    feature_names = get_feature_names(extra_features)
+    rows: list[ForwardFoldResult] = []
+    for fold_idx, (train_frame, validation_frame, test_frame) in enumerate(walk_forward_splits(frame), start=1):
+        result = fit_on_custom_splits(train_frame, validation_frame, test_frame, feature_names, neg_weight=neg_weight)
+        result.fold_name = f"fold_{fold_idx}"
         rows.append(result)
     return rows
 
@@ -431,19 +606,36 @@ def main() -> None:
         ("ret_60_plus_rolling_return_120", ("ret_60", "rolling_return_120"), ()),
         ("ret_60_plus_rolling_vol_60", ("ret_60", "rolling_vol_60"), ()),
         ("ret_60_plus_all_regime_features", ("ret_60", "year", "rolling_return_120", "rolling_vol_60"), ()),
+        ("ret_60_plus_sma_gap_60_plus_neg_weight_1_1", ("ret_60", "sma_gap_60"), ()),
+        ("ret_60_plus_sma_gap_60_plus_rolling_vol_60", ("ret_60", "sma_gap_60", "rolling_vol_60"), ()),
+        ("ret_120", ("ret_120",), ()),
+        ("sma_gap_120", ("sma_gap_120",), ()),
+        ("ret_60_plus_sma_gap_60_interaction", ("ret_60", "sma_gap_60"), ()),
     ]
 
     model_results: dict[str, ModelResult] = {}
     model_artifacts: dict[str, dict[str, object]] = {}
     for name, extras, drops in model_specs:
-        result, artifacts = train_model(default_frame, name, extra_features=extras, drop_features=drops)
+        neg_weight = 1.1 if name == "ret_60_plus_sma_gap_60_plus_neg_weight_1_1" else None
+        extra_interactions = (("ret_60", "sma_gap_60"),) if name == "ret_60_plus_sma_gap_60_interaction" else ()
+        result, artifacts = train_model(
+            default_frame,
+            name,
+            extra_features=extras,
+            drop_features=drops,
+            extra_interactions=extra_interactions,
+            neg_weight=neg_weight,
+        )
         model_results[name] = result
         model_artifacts[name] = artifacts
         model_artifacts[name]["feature_names"] = result.feature_names
 
     backtests: list[BacktestResult] = []
-    for model_name in ("ret_60", "sma_gap_60"):
+    for model_name in ("ret_60", "sma_gap_60", "ret_60_plus_sma_gap_60"):
         backtests.extend(backtest_rules(model_name, model_artifacts[model_name]))
+    backtests.extend(
+        fixed_threshold_backtests("ret_60_plus_sma_gap_60", model_artifacts["ret_60_plus_sma_gap_60"], (0.47, 0.49, 0.51))
+    )
 
     backtest_frame = pd.DataFrame(
         [
@@ -490,10 +682,43 @@ def main() -> None:
         result, _ = train_model(frame, name, extra_features=("ret_60",))
         label_results[name] = result
 
+    combo_seed_results = evaluate_seeds(default_frame, ("ret_60", "sma_gap_60"))
+    combo_walk_forward = evaluate_walk_forward(default_frame, ("ret_60", "sma_gap_60"))
+    ret60_walk_forward = evaluate_walk_forward(default_frame, ("ret_60",))
+
+    combo_artifacts = model_artifacts["ret_60_plus_sma_gap_60"]
+    precision_summary = {
+        "validation": precision_recall(
+            np.asarray(combo_artifacts["validation_probabilities"], dtype=np.float64),
+            combo_artifacts["clean_splits"]["validation"][pr.TARGET_COLUMN].to_numpy(dtype=np.float32),
+            float(combo_artifacts["threshold"]),
+        ),
+        "test": precision_recall(
+            np.asarray(combo_artifacts["test_probabilities"], dtype=np.float64),
+            combo_artifacts["clean_splits"]["test"][pr.TARGET_COLUMN].to_numpy(dtype=np.float32),
+            float(combo_artifacts["threshold"]),
+        ),
+    }
+
+    threshold_scan_results: dict[str, ModelResult] = {}
+    for steps in (401, 801, 1201):
+        result, _ = train_model(
+            default_frame,
+            f"ret_60_plus_sma_gap_60_threshold_steps_{steps}",
+            extra_features=("ret_60", "sma_gap_60"),
+            threshold_steps=steps,
+        )
+        threshold_scan_results[str(steps)] = result
+
     round_payload = {
         "models": {name: asdict(result) for name, result in model_results.items()},
         "backtests": [asdict(row) for row in backtests],
         "label_sweeps": {name: asdict(result) for name, result in label_results.items()},
+        "combo_seed_results": [asdict(row) for row in combo_seed_results],
+        "combo_walk_forward": [asdict(row) for row in combo_walk_forward],
+        "ret60_walk_forward": [asdict(row) for row in ret60_walk_forward],
+        "combo_precision_summary": precision_summary,
+        "combo_threshold_scan": {name: asdict(result) for name, result in threshold_scan_results.items()},
     }
     with open(ROUND_OUTPUT_PATH, "w", encoding="utf-8") as f:
         json.dump(round_payload, f, indent=2)

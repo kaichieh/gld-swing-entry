@@ -39,3 +39,8 @@ c961e17	0.7607	0.6138	0.5000	0.8721	0.7732	0.5000	discard	starting training from
 55df78c	0.5944	0.4262	0.5049	0.8103	0.6896	0.5276	discard	80d +8/-4 with ret_60 lifts validation_f1 only by predicting almost all positives and weakens balance on test
 55df78c	0.6275	0.4579	0.5012	0.8219	0.7008	0.5135	discard	120d +8/-4 with ret_60 inflates f1 while balanced accuracy degrades toward chance and positive-rate bias
 55df78c	0.5346	0.5409	0.6322	0.7250	0.6077	0.5282	discard	60d +12/-6 improves class balance but clearly underperforms the default target on core f1 metrics
+ecddabe	0.5931	0.4571	0.5454	0.8040	0.7014	0.5903	discard	ret_60 plus sma_gap_60 with neg_weight=1.1 does not improve the combo leader on test
+ecddabe	0.5813	0.4233	0.5192	0.8087	0.7044	0.5852	discard	adding rolling_vol_60 on top of the combo weakens validation quality without improving test
+ecddabe	0.5724	0.4018	0.5013	0.8062	0.6753	0.5000	discard	ret_120 collapses toward all-positive behavior and chance balanced accuracy
+ecddabe	0.5831	0.4387	0.5288	0.8077	0.6953	0.5588	discard	sma_gap_120 is milder than ret_120 but still weaker than sma_gap_60 and the combo
+ecddabe	0.6074	0.4985	0.5767	0.7304	0.6417	0.6000	discard	ret_60:sma_gap_60 interaction overfits validation and breaks test f1
