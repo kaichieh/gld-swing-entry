@@ -21,6 +21,7 @@ SIGNAL_COLORS = {
     "weak_bullish": "#fde68a",
     "bullish": "#f59e0b",
     "strong_bullish": "#16a34a",
+    "very_strong_bullish": "#065f46",
 }
 
 
@@ -89,6 +90,20 @@ def build_html(rows: list[dict[str, object]], meta: dict[str, object]) -> str:
         f'<span class="legend-item"><span class="swatch" style="background:{escape(color)}"></span>{escape(name)}</span>'
         for name, color in SIGNAL_COLORS.items()
     )
+    recent_rows = rows[-5:]
+    bullish_like_count = sum(1 for row in recent_rows if row["signal"] in {"bullish", "strong_bullish"})
+    recent_cards = "".join(
+        f"""
+        <div class="recent-card">
+          <div class="recent-date">{escape(str(row["date"]))}</div>
+          <div class="recent-signal" style="color:{escape(SIGNAL_COLORS.get(str(row["signal"]), '#1f2937'))}">{escape(str(row["signal"]))}</div>
+          <div class="recent-metric">p={escape(f'{row["probability"]:.4f}')}</div>
+          <div class="recent-metric">gap={escape(f'{row["confidence_gap"]:.4f}')}</div>
+          <div class="recent-metric">close={escape(f'{row["close"]:.2f}')}</div>
+        </div>
+        """
+        for row in recent_rows
+    )
     return f"""<!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -134,6 +149,41 @@ def build_html(rows: list[dict[str, object]], meta: dict[str, object]) -> str:
       gap: 14px;
       margin-bottom: 18px;
       font-size: 14px;
+    }}
+    .recent-panel {{
+      display: grid;
+      gap: 12px;
+      margin-bottom: 18px;
+    }}
+    .recent-summary {{
+      font-size: 14px;
+      color: var(--muted);
+    }}
+    .recent-grid {{
+      display: grid;
+      grid-template-columns: repeat(5, minmax(150px, 1fr));
+      gap: 10px;
+    }}
+    .recent-card {{
+      background: #faf6ee;
+      border: 1px solid #eadfcb;
+      border-radius: 12px;
+      padding: 10px 12px;
+    }}
+    .recent-date {{
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }}
+    .recent-signal {{
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }}
+    .recent-metric {{
+      font-size: 12px;
+      color: var(--ink);
+      line-height: 1.45;
     }}
     .legend-item {{
       display: inline-flex;
@@ -181,6 +231,10 @@ def build_html(rows: list[dict[str, object]], meta: dict[str, object]) -> str:
     <div class="card">
       <h1>{escape(title)}</h1>
       <div class="sub">上方是收盤價直條圖，顏色代表即時 signal。最新資料日: {escape(str(meta["latest_date"]))}，lookback: {escape(str(meta["lookback_days"]))} bars。</div>
+      <div class="recent-panel">
+        <div class="recent-summary">最近 5 天中，`bullish` 以上共有 <strong>{bullish_like_count}</strong> 天。建議不要只看最後一天，先看這 5 天 signal 是否連續、是否走強。</div>
+        <div class="recent-grid">{recent_cards}</div>
+      </div>
       <div class="legend">{color_legend}</div>
       <div id="chart"></div>
     </div>

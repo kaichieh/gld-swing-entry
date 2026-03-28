@@ -19,6 +19,7 @@ from prepare import add_price_features, download_gld_prices, load_dataset_frame
 DEFAULT_LIVE_EXTRA_FEATURES = ("ret_60",)
 WEAK_BULLISH_QUANTILE = 0.70
 BULLISH_QUANTILE = 0.90
+VERY_STRONG_BULLISH_QUANTILE = 0.97
 
 
 def build_feature_names() -> list[str]:
@@ -102,9 +103,12 @@ def classify_signal(
     positive_gaps = historical_gaps[historical_gaps > 0]
     weak_cutoff = float(np.quantile(positive_gaps, WEAK_BULLISH_QUANTILE)) if len(positive_gaps) else 0.0
     strong_cutoff = float(np.quantile(positive_gaps, BULLISH_QUANTILE)) if len(positive_gaps) else 0.0
+    very_strong_cutoff = float(np.quantile(positive_gaps, VERY_STRONG_BULLISH_QUANTILE)) if len(positive_gaps) else 0.0
 
     if confidence_gap <= 0:
         signal = "no_entry"
+    elif confidence_gap >= very_strong_cutoff:
+        signal = "very_strong_bullish"
     elif confidence_gap >= strong_cutoff:
         signal = "strong_bullish"
     elif confidence_gap >= weak_cutoff:
@@ -116,6 +120,7 @@ def classify_signal(
         "confidence_gap": round(confidence_gap, 4),
         "weak_bullish_cutoff": round(weak_cutoff, 4),
         "strong_bullish_cutoff": round(strong_cutoff, 4),
+        "very_strong_bullish_cutoff": round(very_strong_cutoff, 4),
     }
 
 
