@@ -118,26 +118,46 @@
 
 ## 二、目前最佳模型深化
 
-- [ ] 在目前最佳設定上測 `neg_weight = 1.1`。Performance:
-- [ ] 在目前最佳設定上測 `neg_weight = 1.2`。Performance:
-- [ ] 在目前最佳設定上測 `learning_rate = 0.01`。Performance:
-- [ ] 在目前最佳設定上比較 `threshold_steps=401` 與 `801`。Performance:
+- [x] 在目前最佳設定上測 `neg_weight = 1.1`。Performance: `validation_f1=0.5851`, `validation_bal_acc=0.5320`, `test_f1=0.8115`, `test_bal_acc=0.5623`，test 略好但 validation_f1 仍低於目前最佳。
+- [x] 在目前最佳設定上測 `neg_weight = 1.2`。Performance: `validation_f1=0.5853`, `validation_bal_acc=0.5346`, `test_f1=0.8081`, `test_bal_acc=0.5637`，validation 持平但 test_f1 較弱。
+- [x] 在目前最佳設定上測 `learning_rate = 0.01`。Performance: `validation_f1=0.5845`, `validation_bal_acc=0.5307`, `test_f1=0.8074`, `test_bal_acc=0.5613`，未優於目前最佳。
+- [x] 在目前最佳設定上比較 `threshold_steps=401` 與 `801`。Performance: `threshold=0.422`、`validation_f1=0.5853`、`test_f1=0.8092` 完全一致，沒有額外收益。
 
 ## 三、最佳方向延伸
 
-- [ ] 在目前最佳設定上加入 `gap_down_flag`。Performance:
-- [ ] 在目前最佳設定上加入 `inside_bar`。Performance:
-- [ ] 在目前最佳設定上加入 `range_z_20`。Performance:
-- [ ] 在目前最佳設定上加入 `gap_down_flag:drawdown_20`。Performance:
-- [ ] 在目前最佳設定上加入 `range_z_20:drawdown_20`。Performance:
+- [x] 在目前最佳設定上加入 `gap_down_flag`。Performance: `validation_f1=0.5836`, `validation_bal_acc=0.5327`, `test_f1=0.8058`, `test_bal_acc=0.5614`，未優於目前最佳。
+- [x] 在目前最佳設定上加入 `inside_bar`。Performance: `validation_f1=0.5849`, `validation_bal_acc=0.5327`, `test_f1=0.8081`, `test_bal_acc=0.5589`，未優於目前最佳。
+- [x] 在目前最佳設定上加入 `range_z_20`。Performance: `validation_f1=0.5840`, `validation_bal_acc=0.5262`, `test_f1=0.8092`, `test_bal_acc=0.5552`，test_f1 持平但 validation 與平衡度較弱。
+- [x] 在目前最佳設定上加入 `gap_down_flag:drawdown_20`。Performance: `validation_f1=0.5836`, `validation_bal_acc=0.5327`, `test_f1=0.8070`, `test_bal_acc=0.5626`，沒有形成有效突破。
+- [x] 在目前最佳設定上加入 `range_z_20:drawdown_20`。Performance: `validation_f1=0.5859`, `validation_bal_acc=0.5359`, `test_f1=0.8054`, `test_bal_acc=0.5579`，validation 小幅創高但 test 退化，不升級為正式最佳。
 
 ## 四、交易規則校準
 
-- [ ] 比較 `threshold=0.42`、`0.45`、`0.49` 的交易解讀。Performance:
-- [ ] 只交易最高信心 `top 20%` 樣本並統計表現。Performance:
-- [ ] 只交易最高信心 `top 10%` 樣本並統計表現。Performance:
+- [x] 比較 `threshold=0.42`、`0.45`、`0.49` 的交易解讀。Performance: `0.42` 最接近目前最佳，`test_f1=0.8085`, `avg_return=8.83%`；`0.45` 雖把單筆平均報酬拉到 `9.28%`，但 `test_f1` 降到 `0.6279`；`0.49` 僅交易 `1.38%` 樣本，`test_f1=0.0310`，過度保守。
+- [x] 只交易最高信心 `top 20%` 樣本並統計表現。Performance: 約對應門檻 `0.4661`，`selected_count=131`, `avg_return=9.09%`, `win_rate=0.6870`，但 `test_f1=0.3141`, `test_bal_acc=0.5051`，不適合直接取代現行規則。
+- [x] 只交易最高信心 `top 10%` 樣本並統計表現。Performance: 約對應門檻 `0.4735`，`selected_count=66`, `avg_return=7.85%`, `win_rate=0.6970`，`test_f1=0.1811`，過度稀疏且報酬也未更好。
 
 ## 五、問題排查
 
-- [ ] 釐清為何 `ret_60`、`drawdown_60`、`sma_gap_60`、`volume_vs_60` 加入後會退化到幾乎全負類。Performance:
-- [ ] 檢查 validation 與 test 落差過大的原因，特別是正類比例與 threshold 行為。Performance:
+- [x] 釐清為何 `ret_60`、`drawdown_60`、`sma_gap_60`、`volume_vs_60` 加入後會退化到幾乎全負類。Performance: 根因不是特徵本身，而是這四個 `60` 日特徵在 train split 各殘留 `8` 個 NaN；先前標準化時 NaN 直接污染整欄，導致 logits 與 threshold 搜尋失真，表面上變成幾乎全負類。已在 `train.py` 加入 NaN guard，未來會直接報錯而不是產生假結果。
+- [x] 檢查 validation 與 test 落差過大的原因，特別是正類比例與 threshold 行為。Performance: 目前最佳設定在 validation 的實際正類率僅 `0.4012`，test 則升到 `0.6758`；固定 threshold `0.422` 下，模型在兩段都預測約九成正類，但 validation precision 只有 `0.4191`，test precision 升到 `0.7047`。主因較像時段分布轉移與 test 區間更偏多頭，而不是模型在 test 真正更穩定。
+
+---
+
+# 再下一輪研究任務
+
+## 一、長週期特徵修正重跑
+
+- [ ] 補上實驗特徵的 NaN 處理策略，正式重跑 `ret_60`。Performance:
+- [ ] 補上實驗特徵的 NaN 處理策略，正式重跑 `drawdown_60`。Performance:
+- [ ] 補上實驗特徵的 NaN 處理策略，正式重跑 `sma_gap_60` 與 `volume_vs_60`。Performance:
+
+## 二、目前最佳設定再驗證
+
+- [ ] 對 `neg_weight = 1.1` 做 seed 與 walk-forward 驗證，確認 test 改善是否可重現。Performance:
+- [ ] 對 `range_z_20:drawdown_20` 做 seed 與 walk-forward 驗證，確認 validation 小幅提升是否可信。Performance:
+
+## 三、交易框架下一步
+
+- [ ] 為目前最佳設定建立簡單回測摘要，至少統計命中率、平均報酬與最大回撤。Performance:
+- [ ] 比較「現行 threshold 規則」與「top 20% ranking 規則」在簡單回測下的差異。Performance:

@@ -116,12 +116,22 @@ def assemble_feature_matrices(
             feature_names.append(column)
     drop_features = set(get_env_csv("AR_DROP_FEATURES"))
     feature_names = [name for name in feature_names if name not in drop_features]
-    return (
+    matrices = (
         splits["train"].frame[feature_names].to_numpy(dtype=np.float32),
         splits["validation"].frame[feature_names].to_numpy(dtype=np.float32),
         splits["test"].frame[feature_names].to_numpy(dtype=np.float32),
-        feature_names,
     )
+    split_names = ("train", "validation", "test")
+    issues: list[str] = []
+    for split_name, matrix in zip(split_names, matrices):
+        nan_counts = np.isnan(matrix).sum(axis=0)
+        bad_columns = [(name, int(count)) for name, count in zip(feature_names, nan_counts) if count]
+        if bad_columns:
+            formatted = ", ".join(f"{name}={count}" for name, count in bad_columns)
+            issues.append(f"{split_name}: {formatted}")
+    if issues:
+        raise ValueError("Selected features contain NaNs. " + " | ".join(issues))
+    return (*matrices, feature_names)
 
 
 def classification_stats(probabilities: np.ndarray, labels: np.ndarray, threshold: float) -> tuple[float, float, float, float, np.ndarray]:
