@@ -43,6 +43,7 @@ This framing is closer to a real swing-trade entry decision:
 - [research_ranking.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/research_ranking.py): runs the first ranking-return round plus the current pure-GLD `rolling_vol_60` cross-check
 - [research_ranking_round2.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/research_ranking_round2.py): runs the ranking density scan and the recent-5-year comparison against the binary `rolling_vol_60` candidate
 - [research_binary_round2.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/research_binary_round2.py): runs the seed, walk-forward, and density validation for the binary `rolling_vol_60` candidate
+- [research_binary_round3.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/research_binary_round3.py): compares threshold vs `top_20pct` for the live model and the `rolling_vol_60` candidate across test, walk-forward, and recent-5-year non-overlap returns
 - [score_results.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/score_results.py): refreshes `headline_score` and `promotion_gate` in `results.tsv`
 - [results.tsv](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/results.tsv): experiment log
 - [task.md](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/task.md): next research tasks
@@ -72,6 +73,7 @@ python research_three_bucket_round2.py
 python research_ranking.py
 python research_ranking_round2.py
 python research_binary_round2.py
+python research_binary_round3.py
 ```
 
 ## Notes
@@ -82,4 +84,5 @@ python research_binary_round2.py
 - `headline_score = 0.2*validation_f1 + 0.1*validation_bal_acc + 0.4*test_f1 + 0.3*test_bal_acc`.
 - `promotion_gate` requires `validation_bal_acc >= 0.52` and `test_bal_acc >= 0.54`.
 - In `results.tsv`, `status=live` means the algorithm currently used by `predict_latest.py` and the signal chart; `status=candidate` means a promising research direction that is not yet the live default.
+- `predict_latest.py` now separates `model_signal_summary` from `rule_summary`, so threshold-based model direction and top-percentile rule context do not get conflated.
 - This is a baseline research repo, not a production trading system.

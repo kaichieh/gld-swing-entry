@@ -11,7 +11,7 @@ from html import escape
 import numpy as np
 
 import train as tr
-from predict_latest import build_feature_names, classify_signal, fit_model, score_latest_row
+from predict_latest import RULE_TOP_PCT, build_feature_names, classify_signal, fit_model, score_latest_row, summarize_rule
 from prepare import add_price_features, download_gld_prices, load_splits
 
 OUTPUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache", "gld-swing-entry", "signal_chart.html")
@@ -59,6 +59,7 @@ def build_chart_rows(lookback_days: int) -> tuple[list[dict[str, object]], dict[
         vector, snapshot = score_latest_row(feature_names, train_frame, row)
         probability = float(tr.sigmoid(vector @ weights)[0])
         signal, band_info = classify_signal(probability, float(threshold), history_probabilities)
+        rule_info = summarize_rule(probability, history_probabilities, RULE_TOP_PCT)
         rows.append(
             {
                 "date": row["date"].iloc[0].strftime("%Y-%m-%d"),
@@ -67,6 +68,9 @@ def build_chart_rows(lookback_days: int) -> tuple[list[dict[str, object]], dict[
                 "probability": round(probability, 4),
                 "threshold": round(float(threshold), 4),
                 "confidence_gap": band_info["confidence_gap"],
+                "top20_selected": bool(rule_info["selected"]),
+                "top20_cutoff": round(float(rule_info["cutoff"]), 4),
+                "percentile_rank": round(float(rule_info["percentile_rank"]), 4),
                 "ret_60": round(float(snapshot.get("ret_60", 0.0)), 4),
                 "drawdown_20": round(float(snapshot.get("drawdown_20", 0.0)), 4),
                 "volume_vs_20": round(float(snapshot.get("volume_vs_20", 0.0)), 4),
@@ -92,6 +96,7 @@ def build_html(rows: list[dict[str, object]], meta: dict[str, object]) -> str:
     )
     recent_rows = rows[-5:]
     bullish_like_count = sum(1 for row in recent_rows if row["signal"] in {"bullish", "strong_bullish"})
+    top20_count = sum(1 for row in recent_rows if row["top20_selected"])
     recent_cards = "".join(
         f"""
         <div class="recent-card">
@@ -99,6 +104,7 @@ def build_html(rows: list[dict[str, object]], meta: dict[str, object]) -> str:
           <div class="recent-signal" style="color:{escape(SIGNAL_COLORS.get(str(row["signal"]), '#1f2937'))}">{escape(str(row["signal"]))}</div>
           <div class="recent-metric">p={escape(f'{row["probability"]:.4f}')}</div>
           <div class="recent-metric">gap={escape(f'{row["confidence_gap"]:.4f}')}</div>
+          <div class="recent-metric">top20={'yes' if row["top20_selected"] else 'no'}</div>
           <div class="recent-metric">close={escape(f'{row["close"]:.2f}')}</div>
         </div>
         """
@@ -232,7 +238,7 @@ def build_html(rows: list[dict[str, object]], meta: dict[str, object]) -> str:
       <h1>{escape(title)}</h1>
       <div class="sub">上方是收盤價直條圖，顏色代表即時 signal。最新資料日: {escape(str(meta["latest_date"]))}，lookback: {escape(str(meta["lookback_days"]))} bars。</div>
       <div class="recent-panel">
-        <div class="recent-summary">最近 5 天中，`bullish` 以上共有 <strong>{bullish_like_count}</strong> 天。建議不要只看最後一天，先看這 5 天 signal 是否連續、是否走強。</div>
+        <div class="recent-summary">最近 5 天中，`bullish` 以上共有 <strong>{bullish_like_count}</strong> 天，落在歷史 `top 20%` 規則內共有 <strong>{top20_count}</strong> 天。圖上顏色仍代表模型 signal，但卡片會額外顯示 `top20` 規則是否命中。</div>
         <div class="recent-grid">{recent_cards}</div>
       </div>
       <div class="legend">{color_legend}</div>
@@ -313,7 +319,7 @@ def build_html(rows: list[dict[str, object]], meta: dict[str, object]) -> str:
         tooltip.style.left = `${{event.clientX}}px`;
         tooltip.style.top = `${{event.clientY}}px`;
         tooltip.textContent =
-          `${{row.date}}\\nclose=${{row.close}}\\nsignal=${{row.signal}}\\np=${{row.probability}}\\ngap=${{row.confidence_gap}}\\nret_60=${{row.ret_60}}\\ndrawdown_20=${{row.drawdown_20}}\\nrsi_14=${{row.rsi_14}}`;
+          `${{row.date}}\\nclose=${{row.close}}\\nsignal=${{row.signal}}\\np=${{row.probability}}\\ngap=${{row.confidence_gap}}\\ntop20=${{row.top20_selected}}\\npercentile=${{row.percentile_rank}}\\nret_60=${{row.ret_60}}\\ndrawdown_20=${{row.drawdown_20}}\\nrsi_14=${{row.rsi_14}}`;
       }});
       rect.addEventListener('mouseleave', () => {{
         tooltip.style.display = 'none';

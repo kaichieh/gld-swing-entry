@@ -521,3 +521,14 @@
 ## ranking 次線
 
 - [ ] 若 binary 主線確認不升級 threshold 版本，再對 `ranking + rolling_vol_60` 做簡單分數校準或 winsorize，檢查 decile 單調性是否能改善。Performance:
+# 第 26 輪研究任務
+## 第 25 輪結果
+
+- [x] 比較 `ret_60 + sma_gap_60 + rolling_vol_60` 的 `threshold` 與 `top 20%` 規則。Performance: candidate 模型本身仍是 `validation_f1=0.5801`, `validation_bal_acc=0.5263`, `test_f1=0.8154`, `test_bal_acc=0.6048`, `headline_score=0.6762`；但規則比較已經很明確，`top 20%` 在 test `avg_return=10.54%`, `hit_rate=77.78%`、walk-forward `avg_return=4.82%`、最近 5 年 `avg_return=5.99%`, `max_drawdown=-11.22%`，都優於同模型 threshold 的 `8.07%`, `72.73%`, `3.22%`, `5.62%`, `-15.45%`
+- [x] 將 live 輸出拆成模型訊號與規則摘要。Performance: `predict_latest.py` 現在同時輸出 `model_signal_summary` 與 `rule_summary`；`chart_signals.py` 保留原本顏色代表模型 signal，但最近 5 天卡片與 tooltip 會額外顯示是否落在歷史 `top 20%` 規則內。最新 `2026-03-27` 訊號是 `bullish`，但 `top 20%` 參考規則為 `false`
+
+## 決策收斂
+
+- [ ] 正式決定是否把「live 模型」與「adopted trading rule」分開管理；若分開，需定義各自的命名與輸出欄位。Performance:
+- [ ] 若決定分開管理，補一輪最近 30/60 個交易日對照，檢查當前 `live` threshold 與 `rolling_vol_60 top 20%` 的訊號重疊度與差異天數。Performance:
+- [ ] 若決定不分開管理，則停止 `rolling_vol_60` 規則線，回到目前 `live` binary 路徑並只保留研究紀錄。Performance:

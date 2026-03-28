@@ -20,6 +20,7 @@ DEFAULT_LIVE_EXTRA_FEATURES = ("ret_60", "sma_gap_60")
 WEAK_BULLISH_QUANTILE = 0.70
 BULLISH_QUANTILE = 0.90
 VERY_STRONG_BULLISH_QUANTILE = 0.97
+RULE_TOP_PCT = 20.0
 
 
 def build_feature_names() -> list[str]:
@@ -124,6 +125,23 @@ def classify_signal(
     }
 
 
+def summarize_rule(probability: float, historical_probabilities: np.ndarray, top_pct: float = RULE_TOP_PCT) -> dict[str, object]:
+    cutoff = float(np.quantile(historical_probabilities, 1.0 - top_pct / 100.0)) if len(historical_probabilities) else 0.0
+    percentile_rank = float((historical_probabilities <= probability).mean()) if len(historical_probabilities) else 0.0
+    selected = probability >= cutoff
+    return {
+        "rule_name": f"top_{top_pct:g}pct_reference",
+        "selected": bool(selected),
+        "cutoff": round(cutoff, 4),
+        "percentile_rank": round(percentile_rank, 4),
+        "verdict": (
+            f"Current score sits inside the historical top {top_pct:g}% of model probabilities"
+            if selected
+            else f"Current score does not reach the historical top {top_pct:g}% cutoff"
+        ),
+    }
+
+
 def main() -> None:
     tr.set_seed(tr.get_env_int("AR_SEED", tr.SEED))
     raw_prices = download_gld_prices()
@@ -142,7 +160,9 @@ def main() -> None:
 
     validation_probs = tr.sigmoid(validation_history[0] @ weights)
     test_probs = tr.sigmoid(test_history[0] @ weights)
-    signal, band_info = classify_signal(probability, float(threshold), np.concatenate([validation_probs, test_probs]))
+    historical_probabilities = np.concatenate([validation_probs, test_probs])
+    signal, band_info = classify_signal(probability, float(threshold), historical_probabilities)
+    rule_summary = summarize_rule(probability, historical_probabilities)
     bullish = predicted_label == 1
     output = {
         "signal_summary": {
@@ -153,6 +173,15 @@ def main() -> None:
             "decision_threshold": round(float(threshold), 4),
             **band_info,
         },
+        "model_signal_summary": {
+            "signal": signal,
+            "verdict": "Model favors a medium-term entry" if bullish else "Model does not favor a medium-term entry",
+            "predicted_label": predicted_label,
+            "predicted_probability": round(probability, 4),
+            "decision_threshold": round(float(threshold), 4),
+            **band_info,
+        },
+        "rule_summary": rule_summary,
         "latest_raw_date": latest_live["date"].iloc[0].strftime("%Y-%m-%d"),
         "latest_open": round(float(latest_live["open"].iloc[0]), 2),
         "latest_high": round(float(latest_live["high"].iloc[0]), 2),
@@ -163,6 +192,8 @@ def main() -> None:
             "model_family": "logistic_regression",
             "model_extra_features": [name for name in feature_names if name not in tr.FEATURE_COLUMNS],
             "default_interactions": ["drawdown_20:volume_vs_20"],
+            "live_decision_rule": "threshold",
+            "reference_percentile_rule": f"top_{RULE_TOP_PCT:g}pct",
         },
         "model_extra_features": [name for name in feature_names if name not in tr.FEATURE_COLUMNS],
         "latest_feature_snapshot": {
