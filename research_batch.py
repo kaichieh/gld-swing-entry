@@ -19,6 +19,8 @@ REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 CACHE_DIR = os.path.join(REPO_DIR, ".cache", "gld-swing-entry")
 BACKTEST_OUTPUT_PATH = os.path.join(REPO_DIR, "backtest_comparison.tsv")
 REGIME_OUTPUT_PATH = os.path.join(REPO_DIR, "regime_summary.tsv")
+SIGNAL_OUTPUT_PATH = os.path.join(REPO_DIR, "signal_bucket_summary.tsv")
+FORWARD_OUTPUT_PATH = os.path.join(REPO_DIR, "forward_trade_summary.tsv")
 ROUND_OUTPUT_PATH = os.path.join(CACHE_DIR, "research_batch.json")
 FUTURE_RETURN_COLUMN = "future_return_60"
 DEFAULT_INTERACTIONS = (("drawdown_20", "volume_vs_20"),)
@@ -103,6 +105,9 @@ def add_regime_features(frame: pd.DataFrame) -> pd.DataFrame:
     df["rolling_vol_60"] = df["ret_1"].rolling(60).std()
     df["ret_120"] = df["close"].pct_change(120)
     df["sma_gap_120"] = df["close"] / df["close"].rolling(120).mean() - 1.0
+    df["drawdown_120"] = (df["close"] - df["close"].rolling(120).max()) / df["close"].rolling(120).max()
+    volume = df["volume"].replace(0, np.nan)
+    df["volume_vs_120"] = volume / volume.rolling(120).mean() - 1.0
     return df
 
 
@@ -367,6 +372,37 @@ def run_non_overlap_backtest(
     )
 
 
+def run_cooldown_backtest(
+    future_returns: np.ndarray, selected: np.ndarray, cooldown_days: int, threshold_or_cutoff: float
+) -> BacktestResult:
+    chosen_returns: list[float] = []
+    cooldown = 0
+    for idx in range(len(selected)):
+        if cooldown > 0:
+            cooldown -= 1
+            continue
+        if selected[idx]:
+            chosen_returns.append(float(future_returns[idx]))
+            cooldown = cooldown_days
+    returns = np.asarray(chosen_returns, dtype=np.float64)
+    if len(returns) == 0:
+        return BacktestResult("", "", 0, 0.0, 0.0, 0.0, 0.0, 0, 0, threshold_or_cutoff)
+    simple_equity = np.cumsum(returns) + 1.0
+    compound_equity = np.cumprod(1.0 + returns)
+    return BacktestResult(
+        model_name="",
+        rule_name="",
+        selected_count=len(returns),
+        hit_rate=float((returns > 0).mean()),
+        avg_return=float(returns.mean()),
+        max_drawdown_simple=max_drawdown(simple_equity),
+        max_drawdown_compound=max_drawdown(compound_equity),
+        longest_win_streak=longest_streak(returns, positive=True),
+        longest_loss_streak=longest_streak(returns, positive=False),
+        threshold_or_cutoff=threshold_or_cutoff,
+    )
+
+
 def backtest_rules(model_name: str, artifacts: dict[str, object]) -> list[BacktestResult]:
     test_frame = artifacts["clean_splits"]["test"]
     probs = np.asarray(artifacts["test_probabilities"], dtype=np.float64)
@@ -425,6 +461,20 @@ def fixed_threshold_backtests(model_name: str, artifacts: dict[str, object], thr
     return rows
 
 
+def cooldown_backtests(model_name: str, artifacts: dict[str, object], cooldown_days: tuple[int, ...]) -> list[BacktestResult]:
+    test_frame = artifacts["clean_splits"]["test"]
+    probs = np.asarray(artifacts["test_probabilities"], dtype=np.float64)
+    threshold = float(artifacts["threshold"])
+    future_returns = test_frame[FUTURE_RETURN_COLUMN].to_numpy(dtype=np.float64)
+    rows: list[BacktestResult] = []
+    for cooldown in cooldown_days:
+        result = run_cooldown_backtest(future_returns, probs >= threshold, cooldown, threshold)
+        result.model_name = model_name
+        result.rule_name = f"cooldown_{cooldown}d"
+        rows.append(result)
+    return rows
+
+
 def precision_recall(probabilities: np.ndarray, labels: np.ndarray, threshold: float) -> dict[str, float]:
     tp, tn, fp, fn, predictions = tr.classification_stats(probabilities, labels, threshold)
     precision = tp / max(tp + fp, 1.0)
@@ -460,6 +510,36 @@ def fit_on_custom_splits(
     feature_names: list[str],
     neg_weight: float = tr.NEG_WEIGHT,
 ) -> ForwardFoldResult:
+    artifacts = train_custom_model(train_frame, validation_frame, test_frame, feature_names, neg_weight=neg_weight)
+    validation_metrics = tr.compute_metrics(
+        artifacts["matrices"]["validation"] @ artifacts["weights"],
+        artifacts["validation_y"],
+        artifacts["clean_splits"]["validation"][FUTURE_RETURN_COLUMN].to_numpy(dtype=np.float32),
+        artifacts["threshold"],
+    )
+    test_metrics = tr.compute_metrics(
+        artifacts["matrices"]["test"] @ artifacts["weights"],
+        artifacts["test_y"],
+        artifacts["clean_splits"]["test"][FUTURE_RETURN_COLUMN].to_numpy(dtype=np.float32),
+        artifacts["threshold"],
+    )
+    return ForwardFoldResult(
+        fold_name="",
+        validation_f1=validation_metrics.f1,
+        validation_bal_acc=validation_metrics.balanced_accuracy,
+        test_f1=test_metrics.f1,
+        test_bal_acc=test_metrics.balanced_accuracy,
+        test_positive_rate=test_metrics.positive_rate,
+    )
+
+
+def train_custom_model(
+    train_frame: pd.DataFrame,
+    validation_frame: pd.DataFrame,
+    test_frame: pd.DataFrame,
+    feature_names: list[str],
+    neg_weight: float = tr.NEG_WEIGHT,
+) -> dict[str, object]:
     splits = {"train": train_frame, "validation": validation_frame, "test": test_frame}
     clean_splits, matrices, _mean, _std, _pairs = prepare_feature_matrices(splits, feature_names)
     train_x = matrices["train"]
@@ -498,26 +578,14 @@ def fit_on_custom_splits(
         if epochs_without_improvement >= tr.PATIENCE:
             break
 
-    validation_metrics = tr.compute_metrics(
-        validation_x @ best_weights,
-        validation_y,
-        clean_splits["validation"][FUTURE_RETURN_COLUMN].to_numpy(dtype=np.float32),
-        best_threshold,
-    )
-    test_metrics = tr.compute_metrics(
-        test_x @ best_weights,
-        test_y,
-        clean_splits["test"][FUTURE_RETURN_COLUMN].to_numpy(dtype=np.float32),
-        best_threshold,
-    )
-    return ForwardFoldResult(
-        fold_name="",
-        validation_f1=validation_metrics.f1,
-        validation_bal_acc=validation_metrics.balanced_accuracy,
-        test_f1=test_metrics.f1,
-        test_bal_acc=test_metrics.balanced_accuracy,
-        test_positive_rate=test_metrics.positive_rate,
-    )
+    return {
+        "clean_splits": clean_splits,
+        "matrices": matrices,
+        "weights": best_weights,
+        "threshold": best_threshold,
+        "validation_y": validation_y,
+        "test_y": test_y,
+    }
 
 
 def evaluate_seeds(frame: pd.DataFrame, extra_features: tuple[str, ...], neg_weight: float = tr.NEG_WEIGHT) -> list[ModelResult]:
@@ -539,6 +607,89 @@ def evaluate_walk_forward(frame: pd.DataFrame, extra_features: tuple[str, ...], 
         result = fit_on_custom_splits(train_frame, validation_frame, test_frame, feature_names, neg_weight=neg_weight)
         result.fold_name = f"fold_{fold_idx}"
         rows.append(result)
+    return rows
+
+
+def evaluate_walk_forward_with_folds(
+    frame: pd.DataFrame, extra_features: tuple[str, ...], folds: int, neg_weight: float = tr.NEG_WEIGHT
+) -> list[ForwardFoldResult]:
+    feature_names = get_feature_names(extra_features)
+    rows: list[ForwardFoldResult] = []
+    for fold_idx, (train_frame, validation_frame, test_frame) in enumerate(walk_forward_splits(frame, folds=folds), start=1):
+        result = fit_on_custom_splits(train_frame, validation_frame, test_frame, feature_names, neg_weight=neg_weight)
+        result.fold_name = f"fold_{fold_idx}"
+        rows.append(result)
+    return rows
+
+
+def forward_trade_summary(
+    frame: pd.DataFrame,
+    extra_features: tuple[str, ...],
+    rule: str,
+    folds: int = 4,
+) -> dict[str, float]:
+    feature_names = get_feature_names(extra_features)
+    trade_returns: list[float] = []
+    trade_hits: list[float] = []
+    trade_count = 0
+    for train_frame, validation_frame, test_frame in walk_forward_splits(frame, folds=folds):
+        artifacts = train_custom_model(train_frame, validation_frame, test_frame, feature_names)
+        clean_splits = artifacts["clean_splits"]
+        matrices = artifacts["matrices"]
+        test_probs = tr.sigmoid(matrices["test"] @ artifacts["weights"])
+        future_returns = clean_splits["test"][FUTURE_RETURN_COLUMN].to_numpy(dtype=np.float64)
+        if rule == "threshold":
+            selected = test_probs >= float(artifacts["threshold"])
+        elif rule == "top_15pct":
+            selected = test_probs >= float(np.quantile(test_probs, 0.85))
+        else:
+            raise ValueError(f"Unsupported forward trade rule: {rule}")
+        backtest = run_non_overlap_backtest(
+            clean_splits["test"]["date"], future_returns, selected.astype(bool), pr.HORIZON_DAYS, float(artifacts["threshold"])
+        )
+        trade_count += backtest.selected_count
+        if backtest.selected_count:
+            chosen = []
+            idx = 0
+            while idx < len(selected):
+                if selected[idx]:
+                    chosen.append(float(future_returns[idx]))
+                    idx += pr.HORIZON_DAYS
+                else:
+                    idx += 1
+            trade_returns.extend(chosen)
+            trade_hits.extend([1.0 if x > 0 else 0.0 for x in chosen])
+    returns = np.asarray(trade_returns, dtype=np.float64)
+    return {
+        "trade_count": trade_count,
+        "hit_rate": float(np.mean(trade_hits)) if trade_hits else 0.0,
+        "avg_return": float(returns.mean()) if len(returns) else 0.0,
+    }
+
+
+def signal_bucket_summary(model_name: str, artifacts: dict[str, object]) -> list[dict[str, object]]:
+    test_frame = artifacts["clean_splits"]["test"]
+    probs = np.asarray(artifacts["test_probabilities"], dtype=np.float64)
+    threshold = float(artifacts["threshold"])
+    future_returns = test_frame[FUTURE_RETURN_COLUMN].to_numpy(dtype=np.float64)
+    history_probs = np.concatenate(
+        [np.asarray(artifacts["validation_probabilities"], dtype=np.float64), np.asarray(artifacts["test_probabilities"], dtype=np.float64)]
+    )
+    rows: list[dict[str, object]] = []
+    signal_names = ["weak_bullish", "bullish", "strong_bullish", "very_strong_bullish"]
+    signals = [live.classify_signal(float(prob), threshold, history_probs)[0] for prob in probs]
+    for signal_name in signal_names:
+        mask = np.asarray([signal == signal_name for signal in signals], dtype=bool)
+        bucket_returns = future_returns[mask]
+        rows.append(
+            {
+                "model_name": model_name,
+                "signal_name": signal_name,
+                "sample_count": int(mask.sum()),
+                "hit_rate": float((bucket_returns > 0).mean()) if len(bucket_returns) else 0.0,
+                "avg_return": float(bucket_returns.mean()) if len(bucket_returns) else 0.0,
+            }
+        )
     return rows
 
 
@@ -636,6 +787,9 @@ def main() -> None:
         ("ret_60_plus_sma_gap_60_plus_rolling_vol_60", ("ret_60", "sma_gap_60", "rolling_vol_60"), ()),
         ("ret_120", ("ret_120",), ()),
         ("sma_gap_120", ("sma_gap_120",), ()),
+        ("drawdown_120", ("drawdown_120",), ()),
+        ("volume_vs_120", ("volume_vs_120",), ()),
+        ("sma_gap_60_plus_sma_gap_120", ("sma_gap_60", "sma_gap_120"), ()),
         ("ret_60_plus_sma_gap_60_interaction", ("ret_60", "sma_gap_60"), ()),
     ]
 
@@ -662,6 +816,7 @@ def main() -> None:
     backtests.extend(
         fixed_threshold_backtests("ret_60_plus_sma_gap_60", model_artifacts["ret_60_plus_sma_gap_60"], (0.47, 0.49, 0.51))
     )
+    backtests.extend(cooldown_backtests("ret_60_plus_sma_gap_60", model_artifacts["ret_60_plus_sma_gap_60"], (5, 10)))
 
     backtest_frame = pd.DataFrame(
         [
@@ -710,7 +865,10 @@ def main() -> None:
 
     combo_seed_results = evaluate_seeds(default_frame, ("ret_60", "sma_gap_60"))
     combo_walk_forward = evaluate_walk_forward(default_frame, ("ret_60", "sma_gap_60"))
+    combo_walk_forward_4fold = evaluate_walk_forward_with_folds(default_frame, ("ret_60", "sma_gap_60"), folds=4)
     ret60_walk_forward = evaluate_walk_forward(default_frame, ("ret_60",))
+    combo_trade_forward_threshold = forward_trade_summary(default_frame, ("ret_60", "sma_gap_60"), "threshold", folds=4)
+    sma_gap_trade_forward_top15 = forward_trade_summary(default_frame, ("sma_gap_60",), "top_15pct", folds=4)
 
     combo_artifacts = model_artifacts["ret_60_plus_sma_gap_60"]
     precision_summary = {
@@ -736,15 +894,39 @@ def main() -> None:
         )
         threshold_scan_results[str(steps)] = result
 
+    combo_neg_weight_scan: dict[str, ModelResult] = {}
+    for neg_weight in (1.05, 1.15):
+        result, _ = train_model(
+            default_frame,
+            f"ret_60_plus_sma_gap_60_neg_weight_{neg_weight:.2f}",
+            extra_features=("ret_60", "sma_gap_60"),
+            neg_weight=neg_weight,
+        )
+        combo_neg_weight_scan[f"{neg_weight:.2f}"] = result
+
+    combo_signal_summary = signal_bucket_summary("ret_60_plus_sma_gap_60", model_artifacts["ret_60_plus_sma_gap_60"])
+    pd.DataFrame(combo_signal_summary).to_csv(SIGNAL_OUTPUT_PATH, sep="\t", index=False)
+    pd.DataFrame(
+        [
+            {"strategy_name": "combo_threshold", **combo_trade_forward_threshold},
+            {"strategy_name": "sma_gap_60_top15", **sma_gap_trade_forward_top15},
+        ]
+    ).to_csv(FORWARD_OUTPUT_PATH, sep="\t", index=False)
+
     round_payload = {
         "models": {name: asdict(result) for name, result in model_results.items()},
         "backtests": [asdict(row) for row in backtests],
         "label_sweeps": {name: asdict(result) for name, result in label_results.items()},
         "combo_seed_results": [asdict(row) for row in combo_seed_results],
         "combo_walk_forward": [asdict(row) for row in combo_walk_forward],
+        "combo_walk_forward_4fold": [asdict(row) for row in combo_walk_forward_4fold],
         "ret60_walk_forward": [asdict(row) for row in ret60_walk_forward],
         "combo_precision_summary": precision_summary,
         "combo_threshold_scan": {name: asdict(result) for name, result in threshold_scan_results.items()},
+        "combo_neg_weight_scan": {name: asdict(result) for name, result in combo_neg_weight_scan.items()},
+        "combo_trade_forward_threshold": combo_trade_forward_threshold,
+        "sma_gap_trade_forward_top15": sma_gap_trade_forward_top15,
+        "combo_signal_summary": combo_signal_summary,
     }
     with open(ROUND_OUTPUT_PATH, "w", encoding="utf-8") as f:
         json.dump(round_payload, f, indent=2)
