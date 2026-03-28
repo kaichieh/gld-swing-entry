@@ -493,3 +493,16 @@
 - [ ] 以 `ret_60 + sma_gap_60 + rolling_vol_60` 為 ranking 主候選，補做更細的 `top 12.5% / 15% / 17.5% / 20%` walk-forward 比較，確認最佳交易密度。Performance:
 - [ ] 在 ranking 主候選上加入 `atr_pct_20` 的小範圍組合複驗，確認 `top 10%` 優勢是否能在較高密度規則下延續。Performance:
 - [ ] 比較 ranking 主候選與 `rolling_vol_60` binary 候選在最近 5 年的訊號密度、平均報酬與最大回撤，決定下一步該優先推哪條主線。Performance:
+# 第 24 輪研究任務
+## 第 23 輪結論
+
+- [x] `ranking + rolling_vol_60` 的最佳密度是 `top 17.5%`，walk-forward `avg_return=4.91%`，略高於 `top 20%` 的 `4.76%`。但最近 5 年對照下，binary `rolling_vol_60` 在 `top 12.5%/17.5%/20%` 仍整體較強，只有 `top 15%` 這一點 ranking 稍微領先。結論：下一輪先優先推 binary `rolling_vol_60`，ranking 暫列次要候選。
+
+## pure GLD binary 收斂
+
+- [ ] 將 `ret_60 + sma_gap_60 + rolling_vol_60` 當主候選，正式比較 `top 12.5% / 15% / 17.5% / 20%` 的 test 與 walk-forward，確認最佳交易密度。Performance:
+- [ ] 對 `ret_60 + sma_gap_60 + rolling_vol_60` 做 seed 與 walk-forward 複驗，確認它是否真能取代目前 live。Performance:
+
+## ranking 暫存複驗
+
+- [ ] 若 binary `rolling_vol_60` 沒有順利升級，再對 `ranking + rolling_vol_60` 做一次分數校準或去極端值處理，檢查是否能改善 decile 單調性。Performance:
