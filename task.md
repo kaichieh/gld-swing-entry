@@ -191,13 +191,32 @@
 
 - [ ] 正式比較 `ret_60` 與 `sma_gap_60`，加入同一張對照表與交易摘要。Performance:
 - [ ] 測試 `ret_60 + sma_gap_60` 是否能同時保留 test_f1 與 validation_bal_acc。Performance:
+- [ ] 測試 `ret_60 + sma_gap_60 + drawdown_20:volume_vs_20` 的整體表現，確認雙長週期特徵是否互補。Performance:
+- [ ] 測試 `ret_60` 取代 `ret_20` 後的版本，確認長週期報酬是否比短週期報酬更有用。Performance:
 
 ## 二、交易規則細化
 
 - [ ] 對 `ret_60` 模型測 `top 10%`、`top 15%`、`top 20%` 的非重疊持倉回測。Performance:
 - [ ] 對 `sma_gap_60` 模型測 `threshold rule` 與 `top 20% rule` 的非重疊持倉回測。Performance:
+- [ ] 對 `sma_gap_60` 模型測 `top 10%`、`top 15%`、`top 20%` 的非重疊持倉回測。Performance:
+- [ ] 比較 `ret_60` 與 `sma_gap_60` 在相同非重疊持倉假設下的交易次數、命中率、平均報酬與最大回撤。Performance:
+- [ ] 測試將 `weak_bullish` 視為不進場，只交易 `bullish` 以上訊號時的非重疊回測摘要。Performance:
 
 ## 三、Regime 感知驗證
 
 - [ ] 將 validation/test 按年份切段，統計每段的 barrier 正類率與平均 60 日報酬。Performance:
 - [ ] 測試加入簡單 regime 特徵後，是否能降低 validation/test 分布落差。Performance:
+- [ ] 建立 `year`, `rolling_return_120`, `rolling_vol_60` 三種簡單 regime 特徵候選，逐一測試是否改善 `validation_bal_acc`。Performance:
+- [ ] 比較 2008、2011、2020、2024 之後不同市場階段中，`ret_60` 與 `sma_gap_60` 的預測正類率變化。Performance:
+
+## 四、標記與視窗延伸
+
+- [ ] 在目前較強特徵下，正式比較 `60d +8%/-4%` 與 `80d +8%/-4%`。Performance:
+- [ ] 在目前較強特徵下，正式比較 `60d +8%/-4%` 與 `120d +8%/-4%`。Performance:
+- [ ] 在目前較強特徵下，正式比較 `60d +8%/-4%` 與 `60d +12%/-6%`。Performance:
+
+## 五、回測框架深化
+
+- [ ] 在非重疊持倉回測中加入單利與複利兩種資金曲線摘要。Performance:
+- [ ] 在非重疊持倉回測中加入最長連敗、最長連勝與交易筆數統計。Performance:
+- [ ] 產出 `ret_60` 與 `sma_gap_60` 的回測對照表，寫回 repo 內可重跑的輸出檔。Performance:
