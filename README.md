@@ -38,9 +38,6 @@ This framing is closer to a real swing-trade entry decision:
 - [predict_latest.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/predict_latest.py): scores the latest raw GLD bar without waiting for future labels
 - [chart_signals.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/chart_signals.py): exports an HTML chart of recent closes colored by live signal
 - [research_batch.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/research_batch.py): runs the current formal research batch and writes compact TSV/JSON summaries
-- [research_three_bucket.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/research_three_bucket.py): runs the first 3-bucket return research round plus the current pure-GLD refinement checks
-- [research_three_bucket_round2.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/research_three_bucket_round2.py): runs the final three-bucket validation round with stricter bucket edges and a simple regime-aware split
-- [research_binary_round2.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/research_binary_round2.py): runs the seed, walk-forward, and density validation for the binary `rolling_vol_60` candidate
 - [research_binary_round3.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/research_binary_round3.py): compares threshold vs `top_20pct` for the live model and the `rolling_vol_60` candidate across test, walk-forward, and recent-5-year non-overlap returns
 - [score_results.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/score_results.py): refreshes `headline_score` and `promotion_gate` in `results.tsv`
 - [results.tsv](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/results.tsv): experiment log
@@ -66,9 +63,6 @@ python train.py
 python predict_latest.py
 python chart_signals.py
 python research_batch.py
-python research_three_bucket.py
-python research_three_bucket_round2.py
-python research_binary_round2.py
 python research_binary_round3.py
 ```
 
@@ -81,5 +75,5 @@ python research_binary_round3.py
 - `promotion_gate` requires `validation_bal_acc >= 0.52` and `test_bal_acc >= 0.54`.
 - In `results.tsv`, `status=live` means the algorithm currently used by `predict_latest.py` and the signal chart; `status=candidate` means a promising research direction that is not yet the live default.
 - `predict_latest.py` now separates `model_signal_summary` from `rule_summary`, so threshold-based model direction and top-percentile rule context do not get conflated.
-- The ranking branch is retained only as historical research output and is no longer part of the formal backlog.
+- The old three-bucket and ranking branches have been retired; their historical results remain in `results.tsv`, but the exploratory round scripts are no longer part of the formal pipeline.
 - This is a baseline research repo, not a production trading system.
