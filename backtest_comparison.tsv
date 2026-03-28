@@ -1,0 +1,11 @@
+model_name	rule_name	selected_count	hit_rate	avg_return	max_drawdown_simple	max_drawdown_compound	longest_win_streak	longest_loss_streak	threshold_or_cutoff
+ret_60	threshold	11	0.9091	0.0801	-0.0492	-0.0541	9	1	0.444
+ret_60	top_10pct	8	0.75	0.0799	-0.0398	-0.068	5	1	0.484
+ret_60	top_15pct	8	0.75	0.0859	-0.0387	-0.068	5	1	0.481
+ret_60	top_20pct	9	0.7778	0.0991	-0.0347	-0.068	6	1	0.4789
+ret_60	bullish_plus	10	0.8	0.0825	-0.0359	-0.068	7	1	0.444
+sma_gap_60	threshold	11	0.9091	0.0806	-0.0492	-0.0541	9	1	0.458
+sma_gap_60	top_10pct	7	0.7143	0.0636	-0.0449	-0.068	4	1	0.4905
+sma_gap_60	top_15pct	9	0.7778	0.1059	-0.0336	-0.068	6	1	0.4887
+sma_gap_60	top_20pct	9	0.7778	0.0943	-0.0355	-0.068	6	1	0.4864
+sma_gap_60	bullish_plus	9	0.7778	0.0943	-0.0355	-0.068	6	1	0.458

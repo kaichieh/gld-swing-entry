@@ -37,8 +37,11 @@ This framing is closer to a real swing-trade entry decision:
 - [train.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/train.py): trains a NumPy logistic baseline on the processed dataset
 - [predict_latest.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/predict_latest.py): scores the latest raw GLD bar without waiting for future labels
 - [chart_signals.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/chart_signals.py): exports an HTML chart of recent closes colored by live signal
+- [research_batch.py](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/research_batch.py): runs the current formal research batch and writes compact TSV/JSON summaries
 - [results.tsv](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/results.tsv): experiment log
 - [task.md](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/task.md): next research tasks
+- [backtest_comparison.tsv](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/backtest_comparison.tsv): latest non-overlap backtest comparison table
+- [regime_summary.tsv](/C:/Users/Jay/OneDrive/文件/codex/gld-swing-entry/regime_summary.tsv): latest yearly barrier and regime-stage summaries
 
 ## Default target settings
 
@@ -55,6 +58,7 @@ python prepare.py
 python train.py
 python predict_latest.py
 python chart_signals.py
+python research_batch.py
 ```
 
 ## Notes

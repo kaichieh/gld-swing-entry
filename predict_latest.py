@@ -3,7 +3,7 @@ Score the latest available GLD daily bar without requiring future labels.
 
 Default live config follows the current strongest practical setup:
 - baseline features
-- extra feature: ret_60
+- extra features: ret_60, sma_gap_60
 - default interaction: drawdown_20:volume_vs_20
 """
 
@@ -16,7 +16,7 @@ import numpy as np
 import train as tr
 from prepare import add_price_features, download_gld_prices, load_dataset_frame
 
-DEFAULT_LIVE_EXTRA_FEATURES = ("ret_60",)
+DEFAULT_LIVE_EXTRA_FEATURES = ("ret_60", "sma_gap_60")
 WEAK_BULLISH_QUANTILE = 0.70
 BULLISH_QUANTILE = 0.90
 VERY_STRONG_BULLISH_QUANTILE = 0.97
