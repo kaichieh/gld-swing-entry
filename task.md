@@ -432,3 +432,16 @@
 
 ## 規則延伸
 - [ ] 對第 18 輪表現最好的純 GLD 候選，補做 `top 15%` / `top 17.5%` / `top 20%` walk-forward 比較。Performance:
+# 第 19 輪研究任務
+## 3 桶報酬分桶首輪
+
+- [ ] 建立 `60d forward return` 的 3 桶標記：`up >= +6%`、`flat between -4% and +6%`、`down <= -4%`，先統計 train / validation / test 三段各桶樣本數與比例。Performance:
+- [ ] 以目前 live 特徵組 `ret_60 + sma_gap_60` 訓練 3 桶版本，檢查 validation / test 的 `macro_f1`、`balanced_accuracy` 與各桶 confusion matrix。Performance:
+- [ ] 在 3 桶版本上加入 `atr_pct_20`，確認波動狀態特徵是否比 binary 分類時更有幫助。Performance:
+- [ ] 在 3 桶版本上加入 `up_day_ratio_20`，確認結構型特徵是否能改善 `up / flat / down` 的分辨。Performance:
+- [ ] 在 3 桶版本上加入 `close_location_20`，確認區間位置特徵是否能提升 `flat` 與趨勢類別的切分。Performance:
+
+## 與 binary live 對照
+
+- [ ] 比較 3 桶 baseline 與目前 binary live 在最近 5 年的訊號密度與 forward return 摘要，確認 3 桶是否只是更細，還是真的更有交易解讀價值。Performance:
+- [ ] 檢查 `predicted up / flat / down` 三組的平均報酬、命中率與最大回撤，確認三桶輸出是否具有清楚層次。Performance:
