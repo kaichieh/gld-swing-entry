@@ -168,17 +168,36 @@
 
 ## 一、長週期特徵正式升級驗證
 
-- [ ] 以 `ret_60` 為新候選最佳，做 seed 與 walk-forward 驗證。Performance:
-- [ ] 以 `sma_gap_60` 為新候選最佳，做 seed 與 walk-forward 驗證。Performance:
-- [ ] 測試 `ret_60 + drawdown_20:volume_vs_20` 是否可疊加。Performance:
-- [ ] 測試 `sma_gap_60 + drawdown_20:volume_vs_20` 是否可疊加。Performance:
+- [x] 以 `ret_60` 為新候選最佳，做 seed 與 walk-forward 驗證。Performance: seed `1/2/3` 完全一致，當前切分下 `validation_f1=0.5868`, `test_f1=0.8128`, `test_bal_acc=0.5718`；forward folds 前兩折 `test_f1=0.5748 -> 0.8140`，顯示可用但仍受時段影響。
+- [x] 以 `sma_gap_60` 為新候選最佳，做 seed 與 walk-forward 驗證。Performance: seed `1/2/3` 完全一致，當前切分下 `validation_f1=0.5917`, `validation_bal_acc=0.5428`, `test_bal_acc=0.5768` 最強；forward folds 前兩折 `test_f1=0.5242 -> 0.8107`，穩定性仍受 regime 影響。
+- [x] 測試 `ret_60 + drawdown_20:volume_vs_20` 是否可疊加。Performance: 指標與 `ret_60` 完全一致，因為目前模型預設就已含 `drawdown_20:volume_vs_20` interaction，沒有新增效果。
+- [x] 測試 `sma_gap_60 + drawdown_20:volume_vs_20` 是否可疊加。Performance: 指標與 `sma_gap_60` 完全一致，原因同上，屬於重複設定而非新突破。
 
 ## 二、交易規則深化
 
-- [ ] 建立非重疊持倉的簡單回測，重新估算目前最佳規則的最大回撤。Performance:
-- [ ] 比較 `ret_60` 模型在 `threshold rule` 與 `top 20% ranking rule` 下的回測摘要。Performance:
+- [x] 建立非重疊持倉的簡單回測，重新估算目前最佳規則的最大回撤。Performance: 改成非重疊持倉後，NaN-clean baseline `threshold rule` 只產生 `11` 筆交易，`hit_rate=0.7273`, `avg_return=8.01%`, `max_drawdown=-5.41%`；先前的 `-84.70%` 主要是重疊持倉假設造成的失真。
+- [x] 比較 `ret_60` 模型在 `threshold rule` 與 `top 20% ranking rule` 下的回測摘要。Performance: `threshold rule` 為 `11` 筆、`hit_rate=0.7273`, `avg_return=8.01%`, `max_drawdown=-5.41%`；`top 20%` 為 `9` 筆、`hit_rate=0.7778`, `avg_return=9.91%`, `max_drawdown=-6.80%`，報酬與命中率較高，但回撤略大且樣本更少。
 
 ## 三、時段轉移排查
 
-- [ ] 比較 validation 與 test 區間的實際 barrier 命中分布，確認是否存在 regime shift。Performance:
-- [ ] 測試改用較晚起始年份訓練，是否能縮小 validation/test 落差。Performance:
+- [x] 比較 validation 與 test 區間的實際 barrier 命中分布，確認是否存在 regime shift。Performance: validation 正類率僅 `0.4003`、平均 60 日報酬 `1.41%`，test 正類率升到 `0.6753`、平均 60 日報酬 `8.27%`，明顯存在多頭 regime shift。
+- [x] 測試改用較晚起始年份訓練，是否能縮小 validation/test 落差。Performance: `2012` 與 `2016` 起訓雖讓 `f1` 看起來升高，但 `validation_bal_acc`/`test_bal_acc` 都掉到 `0.5000`，本質上只是更偏向全正類，沒有真的縮小落差。
+
+---
+
+# 再下下下一輪研究任務
+
+## 一、候選最佳正面對決
+
+- [ ] 正式比較 `ret_60` 與 `sma_gap_60`，加入同一張對照表與交易摘要。Performance:
+- [ ] 測試 `ret_60 + sma_gap_60` 是否能同時保留 test_f1 與 validation_bal_acc。Performance:
+
+## 二、交易規則細化
+
+- [ ] 對 `ret_60` 模型測 `top 10%`、`top 15%`、`top 20%` 的非重疊持倉回測。Performance:
+- [ ] 對 `sma_gap_60` 模型測 `threshold rule` 與 `top 20% rule` 的非重疊持倉回測。Performance:
+
+## 三、Regime 感知驗證
+
+- [ ] 將 validation/test 按年份切段，統計每段的 barrier 正類率與平均 60 日報酬。Performance:
+- [ ] 測試加入簡單 regime 特徵後，是否能降低 validation/test 分布落差。Performance:
