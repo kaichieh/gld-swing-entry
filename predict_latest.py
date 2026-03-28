@@ -105,22 +105,29 @@ def main() -> None:
     probability = float(tr.sigmoid(latest_vector @ weights)[0])
     predicted_label = int(probability >= threshold)
 
+    bullish = predicted_label == 1
+    confidence_gap = probability - float(threshold)
     output = {
+        "signal_summary": {
+            "signal": "bullish_entry" if bullish else "no_entry",
+            "verdict": "Model favors a medium-term entry" if bullish else "Model does not favor a medium-term entry",
+            "predicted_label": predicted_label,
+            "predicted_probability": round(probability, 4),
+            "decision_threshold": round(float(threshold), 4),
+            "confidence_gap": round(confidence_gap, 4),
+        },
         "latest_raw_date": latest_live["date"].iloc[0].strftime("%Y-%m-%d"),
         "latest_open": round(float(latest_live["open"].iloc[0]), 2),
         "latest_high": round(float(latest_live["high"].iloc[0]), 2),
         "latest_low": round(float(latest_live["low"].iloc[0]), 2),
         "latest_close": round(float(latest_live["close"].iloc[0]), 2),
         "trained_until_label_date": splits["test"].frame["date"].iloc[-1].strftime("%Y-%m-%d"),
+        "model_summary": {
+            "model_family": "logistic_regression",
+            "model_extra_features": [name for name in feature_names if name not in tr.FEATURE_COLUMNS],
+            "default_interactions": ["drawdown_20:volume_vs_20"],
+        },
         "model_extra_features": [name for name in feature_names if name not in tr.FEATURE_COLUMNS],
-        "decision_threshold": round(float(threshold), 4),
-        "predicted_probability": round(probability, 4),
-        "predicted_label": predicted_label,
-        "interpretation": (
-            "Model favors a medium-term entry"
-            if predicted_label == 1
-            else "Model does not favor a medium-term entry"
-        ),
         "latest_feature_snapshot": {
             key: round(value, 4) for key, value in raw_snapshot.items() if key in {"ret_60", "drawdown_20", "volume_vs_20", "rsi_14"}
         },
