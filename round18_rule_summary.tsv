@@ -1,0 +1,4 @@
+model_name	rule_name	trade_count	hit_rate	avg_return
+ret_60_plus_sma_gap_60_plus_atr_pct_20	top_15pct	27	0.6667	0.035
+ret_60_plus_sma_gap_60_plus_atr_pct_20	top_17_5pct	27	0.6667	0.0358
+ret_60_plus_sma_gap_60_plus_atr_pct_20	top_20pct	29	0.6552	0.0377

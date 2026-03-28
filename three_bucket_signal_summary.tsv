@@ -1,0 +1,4 @@
+model_name	predicted_bucket	sample_count	sample_ratio	hit_rate	avg_return	max_drawdown_compound
+three_bucket_baseline_test	down	176	0.2794	0.8239	0.0865	-0.496
+three_bucket_baseline_test	flat	228	0.3619	0.75	0.0666	-0.9816
+three_bucket_baseline_test	up	226	0.3587	0.8628	0.098	-0.5809

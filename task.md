@@ -426,22 +426,39 @@
 # 第 18 輪研究任務
 ## 純 GLD 主線收斂
 
-- [ ] 測試 `ret_60 + sma_gap_60 + atr_pct_20`，確認較穩的波動狀態特徵是否能正式超過目前 live。Performance:
-- [ ] 測試 `ret_60 + sma_gap_60 + up_day_ratio_20`，確認結構型特徵是否比 `distance_to_252_high` 更自然且更穩。Performance:
-- [ ] 測試 `ret_60 + sma_gap_60 + close_location_20`，重新確認先前 validation 很亮但 test 較弱的路線，在純 GLD 正式流程下是否還值得保留。Performance:
+- [x] 測試 `ret_60 + sma_gap_60 + atr_pct_20`，確認較穩的波動狀態特徵是否能正式超過目前 live。Performance: `validation_f1=0.5915`, `validation_bal_acc=0.5525`, `test_f1=0.8096`, `test_bal_acc=0.6028`, `headline_score=0.6782`。balanced accuracy 是三者最佳，且 `top 20%` walk-forward `avg_return=3.77%` 也是最好的規則版本，但整體仍略輸目前 live 的 `0.6784 / 0.8136 / 0.5947`。
+- [x] 測試 `ret_60 + sma_gap_60 + up_day_ratio_20`，確認結構型特徵是否比 `distance_to_252_high` 更自然且更穩。Performance: `validation_f1=0.5878`, `validation_bal_acc=0.5433`, `test_f1=0.8116`, `test_bal_acc=0.5962`, `headline_score=0.6754`。這是乾淨的次佳候選，但無論 headline score 或規則摘要都沒有超過 live。
+- [x] 測試 `ret_60 + sma_gap_60 + close_location_20`，重新確認先前 validation 很亮但 test 較弱的路線，在純 GLD 正式流程下是否還值得保留。Performance: `validation_f1=0.6010`, `validation_bal_acc=0.5696` 很亮眼，但 `test_f1=0.7886`, `test_bal_acc=0.5765`, `headline_score=0.6655` 明顯退步，仍屬 validation 型強者。
 
 ## 規則延伸
-- [ ] 對第 18 輪表現最好的純 GLD 候選，補做 `top 15%` / `top 17.5%` / `top 20%` walk-forward 比較。Performance:
+- [x] 對第 18 輪表現最好的純 GLD 候選，補做 `top 15%` / `top 17.5%` / `top 20%` walk-forward 比較。Performance: 以 `ret_60 + sma_gap_60 + atr_pct_20` 為最佳候選時，walk-forward `avg_return` 為 `top 15%=3.50%`, `top 17.5%=3.58%`, `top 20%=3.77%`。規則面最佳是 `top 20%`，但仍只小幅優於 live 的 `top 15%=3.44%`，不足以支撐模型升級。
 # 第 19 輪研究任務
 ## 3 桶報酬分桶首輪
 
-- [ ] 建立 `60d forward return` 的 3 桶標記：`up >= +6%`、`flat between -4% and +6%`、`down <= -4%`，先統計 train / validation / test 三段各桶樣本數與比例。Performance:
-- [ ] 以目前 live 特徵組 `ret_60 + sma_gap_60` 訓練 3 桶版本，檢查 validation / test 的 `macro_f1`、`balanced_accuracy` 與各桶 confusion matrix。Performance:
-- [ ] 在 3 桶版本上加入 `atr_pct_20`，確認波動狀態特徵是否比 binary 分類時更有幫助。Performance:
-- [ ] 在 3 桶版本上加入 `up_day_ratio_20`，確認結構型特徵是否能改善 `up / flat / down` 的分辨。Performance:
-- [ ] 在 3 桶版本上加入 `close_location_20`，確認區間位置特徵是否能提升 `flat` 與趨勢類別的切分。Performance:
+- [x] 建立 `60d forward return` 的 3 桶標記：`up >= +6%`、`flat between -4% and +6%`、`down <= -4%`，先統計 train / validation / test 三段各桶樣本數與比例。Performance: train 為 `down/flat/up = 811/1125/1004`，validation 為 `187/266/177`，test 則變成 `68/166/396`。test 的 `up` 比例拉到 `62.86%`，明顯高於 train 的 `34.15%`，3 桶同樣存在 regime shift。
+- [x] 以目前 live 特徵組 `ret_60 + sma_gap_60` 訓練 3 桶版本，檢查 validation / test 的 `macro_f1`、`balanced_accuracy` 與各桶 confusion matrix。Performance: baseline 的 `validation_macro_f1=0.3039`, `validation_bal_acc=0.3149`, `test_macro_f1=0.2998`, `test_bal_acc=0.3204`。test confusion matrix 為 `[[17,37,14],[46,56,64],[113,135,148]]`，能學到一點層次，但距離可交易還很遠。
+- [x] 在 3 桶版本上加入 `atr_pct_20`，確認波動狀態特徵是否比 binary 分類時更有幫助。Performance: `validation_macro_f1=0.2995`, `validation_bal_acc=0.3122`, `test_macro_f1=0.2971`, `test_bal_acc=0.3078`，沒有比 baseline 更好。
+- [x] 在 3 桶版本上加入 `up_day_ratio_20`，確認結構型特徵是否能改善 `up / flat / down` 的分辨。Performance: `validation_macro_f1=0.3078` 小升，但 `test_macro_f1=0.2809`, `test_bal_acc=0.2997` 明顯更差，泛化不成立。
+- [x] 在 3 桶版本上加入 `close_location_20`，確認區間位置特徵是否能提升 `flat` 與趨勢類別的切分。Performance: `validation_macro_f1=0.3054`, `validation_bal_acc=0.3162` 是 validation 最佳，但 `test_macro_f1=0.2972`, `test_bal_acc=0.3175` 仍略輸 baseline。
 
 ## 與 binary live 對照
 
-- [ ] 比較 3 桶 baseline 與目前 binary live 在最近 5 年的訊號密度與 forward return 摘要，確認 3 桶是否只是更細，還是真的更有交易解讀價值。Performance:
-- [ ] 檢查 `predicted up / flat / down` 三組的平均報酬、命中率與最大回撤，確認三桶輸出是否具有清楚層次。Performance:
+- [x] 比較 3 桶 baseline 與目前 binary live 在最近 5 年的訊號密度與 forward return 摘要，確認 3 桶是否只是更細，還是真的更有交易解讀價值。Performance: binary live 在最近 5 年的正向訊號密度為 `89.43%`，平均 forward return `6.02%`；3 桶 baseline 則切成 `down/flat/up = 26.38%/32.81%/40.81%`，平均 forward return 分別為 `5.38%/4.79%/6.00%`。3 桶有把訊號拆細，但還沒有帶來比 binary 更清楚的交易分級。
+- [x] 檢查 `predicted up / flat / down` 三組的平均報酬、命中率與最大回撤，確認三桶輸出是否具有清楚層次。Performance: 在 test split 上，baseline 預測 `up` 的平均報酬 `9.80%`、命中率 `86.28%`，優於 `flat` 的 `6.66% / 75.00%`；但 `down` 仍有 `8.65% / 82.39%`，排序沒有乾淨拉開。結論是 3 桶目前只能算研究輔助，不適合取代 binary live。
+
+---
+
+# 第 20 輪研究任務
+## 3 桶標記再設計
+
+- [ ] 將 3 桶邊界改成更保守版本，至少比較 `up >= +8% / down <= -4%` 與 `up >= +8% / down <= -6%`，確認是否能降低 `up` 桶在 test 過度膨脹的 regime shift。Performance:
+- [ ] 以目前 3 桶 baseline `ret_60 + sma_gap_60` 在新邊界下重跑，檢查 `macro_f1`、`balanced_accuracy` 與 confusion matrix 是否比首輪更乾淨。Performance:
+
+## 3 桶 regime 檢查
+
+- [ ] 以 `above_200dma_flag` 將 3 桶資料切成兩段，先統計各 regime 的桶分布與 forward return，確認問題是否主要來自多頭年份堆積。Performance:
+- [ ] 若 regime 分布差異明顯，對 `above_200dma=1/0` 各自跑 baseline 3 桶版本，確認簡單 regime-aware 分模是否比單一 3 桶模型更穩。Performance:
+
+## 純 GLD 主線補充
+
+- [ ] 重新檢查 `ret_60 + sma_gap_60 + rolling_vol_60`，確認它在純 GLD 正式 cohort 上較高的 `test_f1/test_bal_acc` 是否值得進入主線候選。Performance:
