@@ -17,6 +17,8 @@ import train as tr
 from prepare import add_price_features, download_gld_prices, load_dataset_frame
 
 DEFAULT_LIVE_EXTRA_FEATURES = ("ret_60",)
+WEAK_BULLISH_QUANTILE = 0.70
+BULLISH_QUANTILE = 0.90
 
 
 def build_feature_names() -> list[str]:
@@ -92,6 +94,31 @@ def score_latest_row(feature_names: list[str], train_frame, latest_row) -> tuple
     return latest_augmented, raw_snapshot
 
 
+def classify_signal(
+    probability: float, threshold: float, historical_probabilities: np.ndarray
+) -> tuple[str, dict[str, float]]:
+    confidence_gap = probability - threshold
+    historical_gaps = historical_probabilities - threshold
+    positive_gaps = historical_gaps[historical_gaps > 0]
+    weak_cutoff = float(np.quantile(positive_gaps, WEAK_BULLISH_QUANTILE)) if len(positive_gaps) else 0.0
+    strong_cutoff = float(np.quantile(positive_gaps, BULLISH_QUANTILE)) if len(positive_gaps) else 0.0
+
+    if confidence_gap <= 0:
+        signal = "no_entry"
+    elif confidence_gap >= strong_cutoff:
+        signal = "strong_bullish"
+    elif confidence_gap >= weak_cutoff:
+        signal = "bullish"
+    else:
+        signal = "weak_bullish"
+
+    return signal, {
+        "confidence_gap": round(confidence_gap, 4),
+        "weak_bullish_cutoff": round(weak_cutoff, 4),
+        "strong_bullish_cutoff": round(strong_cutoff, 4),
+    }
+
+
 def main() -> None:
     tr.set_seed(tr.get_env_int("AR_SEED", tr.SEED))
     raw_prices = download_gld_prices()
@@ -99,22 +126,27 @@ def main() -> None:
     splits = tr.load_splits()
     feature_names = build_feature_names()
     weights, threshold = fit_model(splits, feature_names)
+    validation_history, test_history = score_latest_row(feature_names, splits["train"].frame, splits["validation"].frame), score_latest_row(
+        feature_names, splits["train"].frame, splits["test"].frame
+    )
 
     latest_live = live_features.iloc[[-1]].copy()
     latest_vector, raw_snapshot = score_latest_row(feature_names, splits["train"].frame, latest_live)
     probability = float(tr.sigmoid(latest_vector @ weights)[0])
     predicted_label = int(probability >= threshold)
 
+    validation_probs = tr.sigmoid(validation_history[0] @ weights)
+    test_probs = tr.sigmoid(test_history[0] @ weights)
+    signal, band_info = classify_signal(probability, float(threshold), np.concatenate([validation_probs, test_probs]))
     bullish = predicted_label == 1
-    confidence_gap = probability - float(threshold)
     output = {
         "signal_summary": {
-            "signal": "bullish_entry" if bullish else "no_entry",
+            "signal": signal,
             "verdict": "Model favors a medium-term entry" if bullish else "Model does not favor a medium-term entry",
             "predicted_label": predicted_label,
             "predicted_probability": round(probability, 4),
             "decision_threshold": round(float(threshold), 4),
-            "confidence_gap": round(confidence_gap, 4),
+            **band_info,
         },
         "latest_raw_date": latest_live["date"].iloc[0].strftime("%Y-%m-%d"),
         "latest_open": round(float(latest_live["open"].iloc[0]), 2),
