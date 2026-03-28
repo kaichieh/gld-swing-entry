@@ -15,7 +15,7 @@ from predict_latest import build_feature_names, classify_signal, fit_model, scor
 from prepare import add_price_features, download_gld_prices, load_splits
 
 OUTPUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache", "gld-swing-entry", "signal_chart.html")
-DEFAULT_LOOKBACK_DAYS = 180
+DEFAULT_LOOKBACK_DAYS = 5 * 252
 SIGNAL_COLORS = {
     "no_entry": "#9ca3af",
     "weak_bullish": "#fde68a",
@@ -154,8 +154,6 @@ def build_html(rows: list[dict[str, object]], meta: dict[str, object]) -> str:
     }}
     svg {{
       display: block;
-      width: 100%;
-      min-width: 1200px;
       height: 560px;
     }}
     .axis-label {{
@@ -194,7 +192,7 @@ def build_html(rows: list[dict[str, object]], meta: dict[str, object]) -> str:
     const colors = payload.meta.signal_colors;
     const chart = document.getElementById('chart');
     const tooltip = document.getElementById('tooltip');
-    const width = Math.max(1200, rows.length * 8);
+    const width = Math.max(2400, rows.length * 12);
     const height = 560;
     const topPad = 24;
     const priceHeight = 410;
@@ -211,6 +209,8 @@ def build_html(rows: list[dict[str, object]], meta: dict[str, object]) -> str:
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', `0 0 ${{width}} ${{height}}`);
+    svg.setAttribute('width', String(width));
+    svg.setAttribute('height', String(height));
 
     const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     bg.setAttribute('x', '0');
@@ -276,7 +276,7 @@ def build_html(rows: list[dict[str, object]], meta: dict[str, object]) -> str:
     axisLine.setAttribute('stroke-width', '1');
     svg.appendChild(axisLine);
 
-    const tickEvery = Math.max(1, Math.floor(rows.length / 12));
+    const tickEvery = Math.max(1, Math.floor(rows.length / 20));
     rows.forEach((row, index) => {{
       if (index % tickEvery !== 0 && index !== rows.length - 1) return;
       const x = leftPad + index * barWidth + barWidth / 2;
