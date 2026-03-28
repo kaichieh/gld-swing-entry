@@ -142,6 +142,56 @@ def summarize_rule(probability: float, historical_probabilities: np.ndarray, top
     }
 
 
+def build_model_rationale(snapshot: dict[str, float]) -> list[str]:
+    reasons: list[str] = []
+    rsi_14 = float(snapshot.get("rsi_14", 50.0))
+    drawdown_20 = float(snapshot.get("drawdown_20", 0.0))
+    volume_vs_20 = float(snapshot.get("volume_vs_20", 0.0))
+    sma_gap_60 = float(snapshot.get("sma_gap_60", 0.0))
+    ret_60 = float(snapshot.get("ret_60", 0.0))
+
+    if rsi_14 < 20:
+        reasons.append("14 日 RSI 很低，屬於明顯超賣")
+    elif rsi_14 < 30:
+        reasons.append("14 日 RSI 偏低，短線有超賣味道")
+
+    if drawdown_20 <= -0.15:
+        reasons.append("近 20 日回撤很深，屬於急跌後區間")
+    elif drawdown_20 <= -0.10:
+        reasons.append("近 20 日有明顯拉回")
+
+    if volume_vs_20 >= 1.0:
+        reasons.append("成交量明顯放大，可能有恐慌或換手")
+    elif volume_vs_20 >= 0.2:
+        reasons.append("成交量高於 20 日均量")
+
+    if sma_gap_60 <= -0.08:
+        reasons.append("價格明顯低於 60 日均線，偏離中期趨勢")
+    elif sma_gap_60 <= -0.04:
+        reasons.append("價格低於 60 日均線")
+
+    if ret_60 >= 0.03:
+        reasons.append("60 日報酬仍維持正值")
+    elif ret_60 <= -0.03:
+        reasons.append("60 日報酬偏弱，屬於下跌後反彈型態")
+
+    if not reasons:
+        reasons.append("目前沒有特別突出的單一特徵，屬於一般型訊號")
+    return reasons
+
+
+def build_rule_rationale(
+    probability: float,
+    threshold: float,
+    rule_summary: dict[str, object],
+) -> str:
+    if probability < threshold:
+        return "模型分數低於 threshold，規則上偏向不進場"
+    if bool(rule_summary["selected"]):
+        return "模型分數不只高於 threshold，也進入歷史前 20% 強訊號區"
+    return "模型分數已高於 threshold，但還沒有進入歷史前 20% 強訊號區"
+
+
 def main() -> None:
     tr.set_seed(tr.get_env_int("AR_SEED", tr.SEED))
     raw_prices = download_gld_prices()
@@ -163,6 +213,8 @@ def main() -> None:
     historical_probabilities = np.concatenate([validation_probs, test_probs])
     signal, band_info = classify_signal(probability, float(threshold), historical_probabilities)
     rule_summary = summarize_rule(probability, historical_probabilities)
+    model_rationale = build_model_rationale(raw_snapshot)
+    rule_rationale = build_rule_rationale(probability, float(threshold), rule_summary)
     bullish = predicted_label == 1
     output = {
         "signal_summary": {
@@ -182,6 +234,10 @@ def main() -> None:
             **band_info,
         },
         "rule_summary": rule_summary,
+        "rationale_summary": {
+            "model_reasons": model_rationale,
+            "rule_reason": rule_rationale,
+        },
         "latest_raw_date": latest_live["date"].iloc[0].strftime("%Y-%m-%d"),
         "latest_open": round(float(latest_live["open"].iloc[0]), 2),
         "latest_high": round(float(latest_live["high"].iloc[0]), 2),

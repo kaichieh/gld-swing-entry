@@ -11,7 +11,16 @@ from html import escape
 import numpy as np
 
 import train as tr
-from predict_latest import RULE_TOP_PCT, build_feature_names, classify_signal, fit_model, score_latest_row, summarize_rule
+from predict_latest import (
+    RULE_TOP_PCT,
+    build_feature_names,
+    build_model_rationale,
+    build_rule_rationale,
+    classify_signal,
+    fit_model,
+    score_latest_row,
+    summarize_rule,
+)
 from prepare import add_price_features, download_gld_prices, load_splits
 
 OUTPUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache", "gld-swing-entry", "signal_chart.html")
@@ -60,6 +69,8 @@ def build_chart_rows(lookback_days: int) -> tuple[list[dict[str, object]], dict[
         probability = float(tr.sigmoid(vector @ weights)[0])
         signal, band_info = classify_signal(probability, float(threshold), history_probabilities)
         rule_info = summarize_rule(probability, history_probabilities, RULE_TOP_PCT)
+        rationale_text = "；".join(build_model_rationale(snapshot))
+        rule_text = build_rule_rationale(probability, float(threshold), rule_info)
         rows.append(
             {
                 "date": row["date"].iloc[0].strftime("%Y-%m-%d"),
@@ -71,6 +82,8 @@ def build_chart_rows(lookback_days: int) -> tuple[list[dict[str, object]], dict[
                 "top20_selected": bool(rule_info["selected"]),
                 "top20_cutoff": round(float(rule_info["cutoff"]), 4),
                 "percentile_rank": round(float(rule_info["percentile_rank"]), 4),
+                "model_rationale": rationale_text,
+                "rule_rationale": rule_text,
                 "ret_60": round(float(snapshot.get("ret_60", 0.0)), 4),
                 "drawdown_20": round(float(snapshot.get("drawdown_20", 0.0)), 4),
                 "volume_vs_20": round(float(snapshot.get("volume_vs_20", 0.0)), 4),
@@ -105,6 +118,7 @@ def build_html(rows: list[dict[str, object]], meta: dict[str, object]) -> str:
           <div class="recent-metric">p={escape(f'{row["probability"]:.4f}')}</div>
           <div class="recent-metric">gap={escape(f'{row["confidence_gap"]:.4f}')}</div>
           <div class="recent-metric">top20={'yes' if row["top20_selected"] else 'no'}</div>
+          <div class="recent-metric">{escape(str(row["rule_rationale"]))}</div>
           <div class="recent-metric">close={escape(f'{row["close"]:.2f}')}</div>
         </div>
         """
@@ -319,7 +333,7 @@ def build_html(rows: list[dict[str, object]], meta: dict[str, object]) -> str:
         tooltip.style.left = `${{event.clientX}}px`;
         tooltip.style.top = `${{event.clientY}}px`;
         tooltip.textContent =
-          `${{row.date}}\\nclose=${{row.close}}\\nsignal=${{row.signal}}\\np=${{row.probability}}\\ngap=${{row.confidence_gap}}\\ntop20=${{row.top20_selected}}\\npercentile=${{row.percentile_rank}}\\nret_60=${{row.ret_60}}\\ndrawdown_20=${{row.drawdown_20}}\\nrsi_14=${{row.rsi_14}}`;
+          `${{row.date}}\\nclose=${{row.close}}\\nsignal=${{row.signal}}\\np=${{row.probability}}\\ngap=${{row.confidence_gap}}\\ntop20=${{row.top20_selected}}\\npercentile=${{row.percentile_rank}}\\n模型原因=${{row.model_rationale}}\\n規則原因=${{row.rule_rationale}}\\nret_60=${{row.ret_60}}\\ndrawdown_20=${{row.drawdown_20}}\\nrsi_14=${{row.rsi_14}}`;
       }});
       rect.addEventListener('mouseleave', () => {{
         tooltip.style.display = 'none';

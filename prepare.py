@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
+from io import StringIO
 
 import numpy as np
 import pandas as pd
@@ -154,9 +155,7 @@ def download_prices_from_yahoo(session: requests.Session, symbol: str) -> pd.Dat
 def download_prices_from_stooq(session: requests.Session, url: str, cache_path: str) -> pd.DataFrame:
     response = session.get(url, timeout=30)
     response.raise_for_status()
-    with open(cache_path, "w", encoding="utf-8", newline="") as f:
-        f.write(response.text)
-    frame = pd.read_csv(cache_path)
+    frame = pd.read_csv(StringIO(response.text))
     if frame.empty:
         raise RuntimeError("Downloaded GLD dataset from stooq is empty.")
     return normalize_ohlcv_frame(frame)
