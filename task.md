@@ -360,13 +360,13 @@
 
 ## 一、新 input 候選深化
 
-- [ ] 對 `ret_60 + sma_gap_60 + distance_to_252_high` 做 seed 與 walk-forward 驗證，確認它是否能正式超過目前主線。Performance:
-- [ ] 對 `ret_60 + sma_gap_60 + atr_pct_20` 做 seed 與 walk-forward 驗證，確認高 balanced accuracy 是否穩定。Performance:
-- [ ] 對 `ret_60 + sma_gap_60 + up_day_ratio_20` 做快速複驗，確認它是否是值得保留的第三候選。Performance:
+- [x] 對 `ret_60 + sma_gap_60 + distance_to_252_high` 做 seed 與 walk-forward 驗證，確認它是否能正式超過目前主線。Performance: seed 結果為 `validation_f1=0.5237`, `validation_bal_acc=0.5239`, `test_f1=0.8231`, `test_bal_acc=0.5941`；walk-forward 三折中前兩折仍有 `all-positive` 傾向，`test_bal_acc=0.4995/0.5000`，只有第三折站得住，說明它是高上限候選，但還不能算正式超車。
+- [x] 對 `ret_60 + sma_gap_60 + atr_pct_20` 做 seed 與 walk-forward 驗證，確認高 balanced accuracy 是否穩定。Performance: seed 結果為 `validation_f1=0.5362`, `validation_bal_acc=0.5460`, `test_f1=0.8094`, `test_bal_acc=0.5962`；walk-forward 仍有 `0.4993/0.5000/0.5796` 的 regime 不穩，但第三折表現比距高點版本略平衡，是較保守的候選。
+- [x] 對 `ret_60 + sma_gap_60 + up_day_ratio_20` 做快速複驗，確認它是否是值得保留的第三候選。Performance: seed 結果為 `validation_f1=0.5326`, `validation_bal_acc=0.5439`, `test_f1=0.8036`, `test_bal_acc=0.5928`；walk-forward 三折依序為 `test_f1=0.6171/0.5699/0.7943`、`test_bal_acc=0.5019/0.5000/0.5868`，可保留作第三候選，但優先級低於 `distance_to_252_high` 與 `atr_pct_20`。
 
 ## 二、交易規則與新 input 交叉驗證
 
-- [ ] 若 `distance_to_252_high` 或 `atr_pct_20` 在模型面站得住，補做 `top 15%` 與 `top 20%` 規則比較，確認它們提升的是模型品質還是交易摘要。Performance:
+- [x] 若 `distance_to_252_high` 或 `atr_pct_20` 在模型面站得住，補做 `top 15%` 與 `top 20%` 規則比較，確認它們提升的是模型品質還是交易摘要。Performance: `distance_to_252_high` 版本在 test 非重疊回測上 `top 20%` 最亮眼，`avg_return=11.26%`，但 walk-forward 則是 `top 15%=4.51%` 優於 `top 20%=3.89%`；`atr_pct_20` 版本則由 `top 20%` 同時拿下 test `11.13%` 與 walk-forward `4.73%`。兩者都不只是靠 headline_score 撐起來，而是確實值得做交易規則深挖。
 
 ---
 
@@ -374,11 +374,25 @@
 
 ## 一、第二批 datasource 擴充
 
-- [ ] 加入 `DXY` datasource，先做 `gld_vs_dxy_20` 或等價美元相對強弱特徵，檢查美元方向是否能提供黃金外部 context。Performance:
-- [ ] 加入 `TLT` datasource，先做 `gld_vs_tlt_20` 或等價債券相對強弱特徵，檢查利率 / 債券方向是否能補足 GLD 單體訊號。Performance:
-- [ ] 加入 `GDX` datasource，先做 `gld_vs_gdx_20` 或等價金礦股相對強弱特徵，檢查金礦股是否能領先反映金價趨勢。Performance:
-- [ ] 加入 `SLV` datasource，先做 `slv_gld_ratio_20` 或等價白銀 / 黃金相對強弱特徵，檢查貴金屬內部輪動是否有額外資訊。Performance:
+- [x] 加入 `DXY` datasource，先做 `gld_vs_dxy_20` 或等價美元相對強弱特徵，檢查美元方向是否能提供黃金外部 context。Performance: 這裡以 `UUP` 作為美元 proxy；單獨版本為 `validation_f1=0.5324`, `validation_bal_acc=0.5425`, `test_f1=0.8114`, `test_bal_acc=0.5772`，加到 combo 後為 `0.5391 / 0.5512 / 0.8054 / 0.5868`，沒有打進前段班。
+- [x] 加入 `TLT` datasource，先做 `gld_vs_tlt_20` 或等價債券相對強弱特徵，檢查利率 / 債券方向是否能補足 GLD 單體訊號。Performance: 單獨版本是第二批 datasource 中最好的 standalone，`validation_f1=0.5312`, `validation_bal_acc=0.5413`, `test_f1=0.8230`, `test_bal_acc=0.5884`；加到 combo 後為 `0.5366 / 0.5488 / 0.8058 / 0.5910`，沒有超過主線。
+- [x] 加入 `GDX` datasource，先做 `gld_vs_gdx_20` 或等價金礦股相對強弱特徵，檢查金礦股是否能領先反映金價趨勢。Performance: 單獨版本為 `validation_f1=0.5355`, `validation_bal_acc=0.5491`, `test_f1=0.8058`, `test_bal_acc=0.5795`；加到 combo 後變成 `validation_f1=0.5367`, `validation_bal_acc=0.5458`, `test_f1=0.8134`, `test_bal_acc=0.6000`，是第二批 datasource 中最強的 combo 候選。
+- [x] 加入 `SLV` datasource，先做 `slv_gld_ratio_20` 或等價白銀 / 黃金相對強弱特徵，檢查貴金屬內部輪動是否有額外資訊。Performance: 單獨版本 `validation_f1=0.5380`, `validation_bal_acc=0.5515` 不差，但 `test_f1=0.7863`, `test_bal_acc=0.5363` 偏弱；加到 combo 後也掉到 `test_f1=0.7877`，暫不追。
 
 ## 二、datasource 收斂
 
-- [ ] 從 `DXY / TLT / GDX / SLV` 四個新 datasource 中保留前 1 到 2 名，再與 `ret_60 + sma_gap_60 + distance_to_252_high` 或 `atr_pct_20` 主線組合比較。Performance:
+- [x] 從 `DXY / TLT / GDX / SLV` 四個新 datasource 中保留前 1 到 2 名，再與 `ret_60 + sma_gap_60 + distance_to_252_high` 或 `atr_pct_20` 主線組合比較。Performance: 保留的 datasource 是 `TLT` 與 `GDX`。其中 `ret_60 + sma_gap_60 + distance_to_252_high + gld_vs_gdx_20` 最亮眼，`validation_f1=0.5258`, `validation_bal_acc=0.5278`, `test_f1=0.8249`, `test_bal_acc=0.5996`，headline_score 約 `0.6678`，略高於當前 cohort baseline；`distance + TLT` 也有 `test_f1=0.8261`，但 balanced accuracy 較低。`atr + TLT/GDX` 都沒有超過單獨的 `distance + GDX`。
+
+---
+
+# 第 15 輪研究任務
+
+## 一、最強 cross-asset 候選深化
+
+- [ ] 對 `ret_60 + sma_gap_60 + distance_to_252_high + gld_vs_gdx_20` 做 seed 與 walk-forward 驗證，確認它是否是真正的新主線候選。Performance:
+- [ ] 對 `ret_60 + sma_gap_60 + gld_vs_gdx_20` 做 seed 與 walk-forward 驗證，確認 `GDX` 單獨加成是否比 `distance + GDX` 更穩。Performance:
+- [ ] 對 `ret_60 + sma_gap_60 + distance_to_252_high + gld_vs_tlt_20` 做快速複驗，確認 `TLT` 是否只是高 test_f1 偶然值。Performance:
+
+## 二、交易規則最後交叉驗證
+
+- [ ] 若 `distance + GDX` 或 `GDX` 單獨加成站得住，補做 `top 15%` 與 `top 20%` 規則比較，確認 cross-asset 改善的是模型面還是交易面。Performance:

@@ -67,3 +67,11 @@ d6022ec	0.5878	0.4524	0.5433	0.8116	0.7111	0.5962	0.6754	pass	discard	ret_60 plu
 d6022ec	0.5688	0.3984	0.5013	0.8108	0.6873	0.5192	0.6440	fail	discard	ret_60 plus sma_gap_60 plus above_200dma_flag overpredicts positives and weakens balance
 d6022ec	0.5915	0.4651	0.5525	0.8096	0.7111	0.6028	0.6782	pass	keep	ret_60 plus sma_gap_60 plus atr_pct_20 delivers the best balanced accuracy among the new-input combos and deserves deeper validation
 d6022ec	0.5806	0.4841	0.5553	0.7593	0.6508	0.5611	0.6437	pass	discard	ret_60 plus sma_gap_60 plus gld_vs_spy_20 hurts test f1 materially despite decent balance
+7424ecd	0.5376	0.4120	0.5486	0.8094	0.7094	0.5962	0.6650	pass	keep	context-ready cohort baseline combo refresh remains the current internal-feature reference on the expanded multi-asset dataset
+7424ecd	0.5237	0.3932	0.5239	0.8231	0.7145	0.5941	0.6646	pass	discard	ret_60 plus sma_gap_60 plus distance_to_252_high lifts test f1 but remains too unstable in walk-forward validation
+7424ecd	0.5362	0.4103	0.5460	0.8094	0.7094	0.5962	0.6645	pass	discard	ret_60 plus sma_gap_60 plus atr_pct_20 is the steadier balanced-accuracy candidate but does not clearly beat the refreshed combo
+7424ecd	0.5326	0.4051	0.5439	0.8036	0.7077	0.5928	0.6602	pass	discard	ret_60 plus sma_gap_60 plus up_day_ratio_20 remains a healthy third candidate but is not the lead direction
+7424ecd	0.5312	0.4034	0.5413	0.8230	0.7197	0.5884	0.6661	pass	discard	gld_vs_tlt_20 is the strongest standalone external datasource but its combo add-on does not surpass the main line
+7424ecd	0.5367	0.4103	0.5458	0.8134	0.7111	0.6000	0.6673	pass	keep	ret_60 plus sma_gap_60 plus gld_vs_gdx_20 is the strongest single cross-asset combo and merits deeper validation
+7424ecd	0.5258	0.3950	0.5278	0.8249	0.7179	0.5996	0.6678	pass	keep	ret_60 plus sma_gap_60 plus distance_to_252_high plus gld_vs_gdx_20 is the best current cross-asset follow-up candidate on headline score and test f1
+7424ecd	0.5380	0.4000	0.5515	0.7863	0.6932	0.5363	0.6382	fail	discard	slv_gld_ratio_20 does not translate internal precious-metals rotation into a competitive signal
