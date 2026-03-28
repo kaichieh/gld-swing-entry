@@ -532,3 +532,16 @@
 - [ ] 正式決定是否把「live 模型」與「adopted trading rule」分開管理；若分開，需定義各自的命名與輸出欄位。Performance:
 - [ ] 若決定分開管理，補一輪最近 30/60 個交易日對照，檢查當前 `live` threshold 與 `rolling_vol_60 top 20%` 的訊號重疊度與差異天數。Performance:
 - [ ] 若決定不分開管理，則停止 `rolling_vol_60` 規則線，回到目前 `live` binary 路徑並只保留研究紀錄。Performance:
+
+---
+
+# 第 27 輪研究任務
+## 第 26 輪結果
+
+- [x] ranking 線正式停止。Performance: ranking 只在少數密度下有局部優勢，但整體排序穩定性、分位數單調性與最近 5 年表現都不如 binary 主線，因此從正式 backlog 與 README 主流程移除，只保留歷史研究紀錄
+
+## binary 主線
+
+- [ ] 正式決定是否把「live 模型」與「adopted trading rule」分開管理；若分開，需定義各自的命名與輸出欄位。Performance:
+- [ ] 若決定分開管理，補一輪最近 30/60 個交易日對照，檢查當前 `live` threshold 與 `rolling_vol_60 top 20%` 的訊號重疊度與差異天數。Performance:
+- [ ] 若決定不分開管理，則停止 `rolling_vol_60` 規則線，回到目前 `live` binary 路徑並只保留研究紀錄。Performance:
