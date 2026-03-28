@@ -469,18 +469,27 @@
 
 ## 純 GLD 主線延伸
 
-- [ ] 正式測試 `ret_60 + sma_gap_60 + rolling_vol_60`，確認它在純 GLD cohort 上較高的 `test_f1/test_bal_acc` 是否能站住。Performance:
-- [ ] 若 `rolling_vol_60` 站得住，補做 `top 15% / top 17.5% / top 20%` walk-forward 規則比較，確認它提升的是模型面還是交易面。Performance:
+- [x] 正式測試 `ret_60 + sma_gap_60 + rolling_vol_60`，確認它在純 GLD cohort 上較高的 `test_f1/test_bal_acc` 是否能站住。Performance: `validation_f1=0.5801`, `validation_bal_acc=0.5263`, `test_f1=0.8154`, `test_bal_acc=0.6048`, `headline_score=0.6762`。它在 test 面確實比 live 更好，但 validation 明顯較弱，因此目前只能算純 GLD 主線候選，不直接升級。
+- [x] 若 `rolling_vol_60` 站得住，補做 `top 15% / top 17.5% / top 20%` walk-forward 規則比較，確認它提升的是模型面還是交易面。Performance: `rolling_vol_60` 的 walk-forward `avg_return` 為 `top 15%=4.66%`, `top 17.5%=4.41%`, `top 20%=4.82%`，全部高於 live 的 `3.44% / 3.16% / 3.23%`。交易面最亮的是 `top 20%`，這條線值得保留到下一輪。
 # 第 22 輪研究任務
 ## ranking 首輪
 
-- [ ] 建立 `future_return_60` ranking target，先統計 train / validation / test 的報酬分布、分位數與年份差異。Performance:
-- [ ] 以目前 live 特徵組 `ret_60 + sma_gap_60` 訓練 ranking baseline，使用預測的 `future_return_60` 作為排序分數。Performance:
-- [ ] 在 ranking baseline 上加入 `atr_pct_20`，確認波動狀態特徵是否能提升 top-percentile 排序品質。Performance:
-- [ ] 在 ranking baseline 上加入 `rolling_vol_60`，確認它是否比 `atr_pct_20` 更適合 ranking 目標。Performance:
+- [x] 建立 `future_return_60` ranking target，先統計 train / validation / test 的報酬分布、分位數與年份差異。Performance: train / validation / test 的平均 `future_return_60` 為 `2.20% / 1.16% / 8.34%`，test `p90=19.66%` 明顯高於 train `13.58%`。ranking 目標同樣受到近期多頭 regime 影響。
+- [x] 以目前 live 特徵組 `ret_60 + sma_gap_60` 訓練 ranking baseline，使用預測的 `future_return_60` 作為排序分數。Performance: baseline 的 `validation_spearman=0.0634`, `test_spearman=0.0333` 很弱；但 `top 15%` walk-forward `avg_return=4.55%`，已高於 binary live 的 `3.44%`。這條線交易面有潛力，但排序品質還不乾淨。
+- [x] 在 ranking baseline 上加入 `atr_pct_20`，確認波動狀態特徵是否能提升 top-percentile 排序品質。Performance: `validation_spearman=0.1439` 最好，但 `test_spearman=-0.0322` 反向，`top 10%` walk-forward `avg_return=4.98%` 雖亮眼，但 `top 15%/20%` 退步，整體不穩。
+- [x] 在 ranking baseline 上加入 `rolling_vol_60`，確認它是否比 `atr_pct_20` 更適合 ranking 目標。Performance: `validation_spearman=0.1043`, `test_spearman=0.0473` 是三者最佳；`top 20%` walk-forward `avg_return=4.76%` 也優於 binary live。這是目前最值得繼續追的 ranking 候選。
 
 ## 與 binary live 對照
 
-- [ ] 比較 ranking baseline 與 binary live 在 `top 10% / 15% / 20%` 的 test 非重疊回測。Performance:
-- [ ] 比較 ranking baseline 與 binary live 在 `top 10% / 15% / 20%` 的 walk-forward 平均報酬、命中率與最大回撤。Performance:
-- [ ] 檢查 ranking 分數分位數是否有 forward return 單調性，確認 top decile 是否明顯優於中位數區間。Performance:
+- [x] 比較 ranking baseline 與 binary live 在 `top 10% / 15% / 20%` 的 test 非重疊回測。Performance: test 端 binary live 的 `top 15%` 為 `avg_return=8.93%`, `hit_rate=71.43%`；ranking baseline 的 `top 10%/15%/20%` 為 `7.41% / 6.54% / 6.32%`，不如 binary。單看 test，ranking 並沒有贏。
+- [x] 比較 ranking baseline 與 binary live 在 `top 10% / 15% / 20%` 的 walk-forward 平均報酬、命中率與最大回撤。Performance: walk-forward 上反而是 ranking 佔優。binary live 為 `3.84% / 3.44% / 3.23%`；ranking baseline 為 `3.99% / 4.55% / 3.90%`；`ranking + rolling_vol_60` 更進一步到 `3.38% / 3.54% / 4.76%`。目前 ranking 的優勢主要出現在 walk-forward 交易面，不是 test 單點。
+- [x] 檢查 ranking 分數分位數是否有 forward return 單調性，確認 top decile 是否明顯優於中位數區間。Performance: 三個 ranking 版本的 decile 都沒有乾淨單調。`ranking baseline` 的第 `5` 分位平均報酬 `11.64%` 反而高於第 `10` 分位 `8.38%`；`ranking + rolling_vol_60` 也在第 `6` 分位 `10.93%` 高於第 `10` 分位 `8.07%`。結論是排序規則已有交易價值，但分數本身還沒形成漂亮的單調結構。
+
+---
+
+# 第 23 輪研究任務
+## ranking 主線收斂
+
+- [ ] 以 `ret_60 + sma_gap_60 + rolling_vol_60` 為 ranking 主候選，補做更細的 `top 12.5% / 15% / 17.5% / 20%` walk-forward 比較，確認最佳交易密度。Performance:
+- [ ] 在 ranking 主候選上加入 `atr_pct_20` 的小範圍組合複驗，確認 `top 10%` 優勢是否能在較高密度規則下延續。Performance:
+- [ ] 比較 ranking 主候選與 `rolling_vol_60` binary 候選在最近 5 年的訊號密度、平均報酬與最大回撤，決定下一步該優先推哪條主線。Performance:

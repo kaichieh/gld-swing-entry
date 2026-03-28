@@ -1,0 +1,7 @@
+model_name	rule_name	test_trade_count	test_hit_rate	test_avg_return	test_max_drawdown_compound	forward_trade_count	forward_hit_rate	forward_avg_return
+ret_60_plus_sma_gap_60_live	top_15pct	7	0.7143	0.0893	-0.068	27	0.6667	0.0344
+ret_60_plus_sma_gap_60_live	top_17_5pct	7	0.7143	0.0893	-0.068	29	0.6552	0.0316
+ret_60_plus_sma_gap_60_live	top_20pct	7	0.7143	0.0838	-0.068	30	0.6	0.0323
+ret_60_plus_sma_gap_60_plus_rolling_vol_60	top_15pct	8	0.75	0.0877	-0.068	26	0.6154	0.0466
+ret_60_plus_sma_gap_60_plus_rolling_vol_60	top_17_5pct	8	0.75	0.0877	-0.068	26	0.6154	0.0441
+ret_60_plus_sma_gap_60_plus_rolling_vol_60	top_20pct	9	0.7778	0.1054	-0.068	29	0.6552	0.0482

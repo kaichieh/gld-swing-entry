@@ -1,0 +1,4 @@
+model_name	rule_name	test_trade_count	test_hit_rate	test_avg_return	test_max_drawdown_compound	forward_trade_count	forward_hit_rate	forward_avg_return
+binary_live	top_10pct	7	0.7143	0.0765	-0.068	25	0.68	0.0384
+binary_live	top_15pct	7	0.7143	0.0893	-0.068	27	0.6667	0.0344
+binary_live	top_20pct	7	0.7143	0.0838	-0.068	30	0.6	0.0323

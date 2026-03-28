@@ -96,3 +96,7 @@ f67a6ce	0.5225	0.3846	0.5242	0.8261	0.7265	0.5951	0.6659	pass	discard	ret_60 plu
 4dc1f40	0.2941	0.4413	0.3259	0.2124	0.2968	0.3085	0.2743	fail	discard	three-bucket up8 down4 shifts more samples into flat but collapses test macro_f1 and does not solve the regime problem
 4dc1f40	0.3087	0.6127	0.3536	0.2194	0.4127	0.3423	0.2981	fail	discard	three-bucket up8 down6 is the cleanest second-round boundary variant but still remains far below useful test quality
 4dc1f40	0.2839	0.3476	0.2924	0.3109	0.4048	0.3207	0.2983	fail	discard	three-bucket regime-aware split by above_200dma does not materially improve the baseline and ends the three-bucket branch
+4782807	0.5801	0.4302	0.5263	0.8154	0.7175	0.6048	0.6762	pass	candidate	ret_60 plus sma_gap_60 plus rolling_vol_60 weakens validation but improves test f1, test balanced accuracy, and walk-forward top-percentile returns enough to stay on the pure-GLD shortlist
+4782807	0.5695	0.4000	0.5026	0.8152	0.6921	0.5187	0.6459	fail	discard	ranking baseline keeps only weak score-return correlation and fails the promotion gate even though its top-15pct walk-forward return beats binary live
+4782807	0.5972	0.4905	0.5694	0.7492	0.6175	0.4917	0.6236	fail	discard	ranking plus atr_pct_20 has the best validation spearman but breaks on test and does not form a stable ranking line
+4782807	0.5695	0.4000	0.5026	0.8149	0.6921	0.5201	0.6461	fail	candidate	ranking plus rolling_vol_60 is the strongest first-round ranking candidate thanks to the best test spearman and top-20pct walk-forward average return
