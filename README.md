@@ -70,4 +70,5 @@ python research_batch.py
 - If both barriers are touched on the same day, the sample is dropped as ambiguous.
 - `headline_score = 0.2*validation_f1 + 0.1*validation_bal_acc + 0.4*test_f1 + 0.3*test_bal_acc`.
 - `promotion_gate` requires `validation_bal_acc >= 0.52` and `test_bal_acc >= 0.54`.
+- In `results.tsv`, `status=live` means the algorithm currently used by `predict_latest.py` and the signal chart; `status=candidate` means a promising research direction that is not yet the live default.
 - This is a baseline research repo, not a production trading system.
