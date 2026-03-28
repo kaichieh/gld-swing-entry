@@ -414,9 +414,21 @@
 # 第 17 輪研究任務
 ## cross-asset 新訊號窗格
 
-- [ ] 測試 `gld_vs_gdx_60`，確認較長的 cross-asset 相對強弱是否比 `20d` 更不容易在 early folds 崩成 all-positive。Performance:
-- [ ] 測試 `ret_60 + sma_gap_60 + gld_vs_gdx_60`，確認長窗 GDX 單獨加成是否比 `gld_vs_gdx_20` 更穩。Performance:
-- [ ] 測試 `ret_60 + sma_gap_60 + distance_to_252_high + gld_vs_gdx_60`，確認高上限版本是否能保住 test_f1 同時改善 walk-forward balance。Performance:
+- [x] 測試 `gld_vs_gdx_60`，確認較長的 cross-asset 相對強弱是否比 `20d` 更不容易在 early folds 崩成 all-positive。Performance: `validation_f1=0.5397`, `validation_bal_acc=0.5660`, `test_f1=0.7937`, `test_bal_acc=0.5741`, `headline_score=0.6542`。walk-forward 前兩折仍是 `test_bal_acc=0.5000/0.5056` 且正類率偏高，說明單獨拉長到 `60d` 並沒有真正修好 regime 問題。
+- [x] 測試 `ret_60 + sma_gap_60 + gld_vs_gdx_60`，確認長窗 GDX 單獨加成是否比 `gld_vs_gdx_20` 更穩。Performance: `validation_f1=0.5411`, `validation_bal_acc=0.5611`, `test_f1=0.7889`, `test_bal_acc=0.5892`, `headline_score=0.6567`。雖然 validation 變漂亮，但 test_f1 明顯比 `gld_vs_gdx_20` 線更弱，walk-forward 前兩折也仍接近 `0.4940/0.5069`，不值得升級。
+- [x] 測試 `ret_60 + sma_gap_60 + distance_to_252_high + gld_vs_gdx_60`，確認高上限版本是否能保住 test_f1 同時改善 walk-forward balance。Performance: `validation_f1=0.5279`, `validation_bal_acc=0.5435`, `test_f1=0.8134`, `test_bal_acc=0.6000`, `headline_score=0.6653`。這是 `gld_vs_gdx_60` 路線中最強版本，但仍低於 `distance + gdx_20` 的 `0.6678`，而且 walk-forward 前兩折仍停在 `0.4983/0.5000`，所以只算次佳備案。
 
 ## 規則延伸
-- [ ] 若 `gld_vs_gdx_60` 路線站得住，對最佳版本補做 `top 15%` / `top 17.5%` / `top 20%` 規則摘要。Performance:
+- [x] 若 `gld_vs_gdx_60` 路線站得住，對最佳版本補做 `top 15%` / `top 17.5%` / `top 20%` 規則摘要。Performance: 以 `distance + gdx_60` 為最佳 `60d` 版本時，test 非重疊回測是 `top 15%=11.75%`, `top 17.5%=9.79%`, `top 20%=9.79%`；walk-forward 則是 `4.38% / 4.41% / 3.72%`，因此 `top 17.5%` 小勝 `top 15%`。不過整體仍沒有超過 `distance + gdx_20` 路線。
+
+---
+
+# 第 18 輪研究任務
+## cross-asset 次佳線清查
+
+- [ ] 測試 `ret_60 + sma_gap_60 + atr_pct_20 + gld_vs_gdx_20`，確認較穩的波動狀態特徵能否比 `distance_to_252_high` 更自然地承接 `GDX` context。Performance:
+- [ ] 測試 `ret_60 + sma_gap_60 + up_day_ratio_20 + gld_vs_gdx_20`，確認結構型 input 與 `GDX` 疊加是否能比長視窗 price-level 特徵更穩。Performance:
+- [ ] 測試 `ret_60 + sma_gap_60 + atr_pct_20 + gld_vs_tlt_20`，確認 `TLT` 是否在較穩內生特徵上比 `GDX` 更容易泛化。Performance:
+
+## 規則延伸
+- [ ] 對第 18 輪表現最好的 cross-asset 候選，補做 `top 15%` / `top 17.5%` / `top 20%` walk-forward 比較。Performance:

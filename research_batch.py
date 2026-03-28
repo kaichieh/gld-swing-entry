@@ -851,6 +851,7 @@ def main() -> None:
         ("gld_vs_dxy_20", ("gld_vs_dxy_20",), ()),
         ("gld_vs_tlt_20", ("gld_vs_tlt_20",), ()),
         ("gld_vs_gdx_20", ("gld_vs_gdx_20",), ()),
+        ("gld_vs_gdx_60", ("gld_vs_gdx_60",), ()),
         ("slv_gld_ratio_20", ("slv_gld_ratio_20",), ()),
         ("ret_60_plus_sma_gap_60_plus_distance_to_252_high", ("ret_60", "sma_gap_60", "distance_to_252_high"), ()),
         ("ret_60_plus_sma_gap_60_plus_close_location_20", ("ret_60", "sma_gap_60", "close_location_20"), ()),
@@ -861,6 +862,7 @@ def main() -> None:
         ("ret_60_plus_sma_gap_60_plus_gld_vs_dxy_20", ("ret_60", "sma_gap_60", "gld_vs_dxy_20"), ()),
         ("ret_60_plus_sma_gap_60_plus_gld_vs_tlt_20", ("ret_60", "sma_gap_60", "gld_vs_tlt_20"), ()),
         ("ret_60_plus_sma_gap_60_plus_gld_vs_gdx_20", ("ret_60", "sma_gap_60", "gld_vs_gdx_20"), ()),
+        ("ret_60_plus_sma_gap_60_plus_gld_vs_gdx_60", ("ret_60", "sma_gap_60", "gld_vs_gdx_60"), ()),
         ("ret_60_plus_sma_gap_60_plus_slv_gld_ratio_20", ("ret_60", "sma_gap_60", "slv_gld_ratio_20"), ()),
         ("ret_60_plus_sma_gap_60_interaction", ("ret_60", "sma_gap_60"), ()),
     ]

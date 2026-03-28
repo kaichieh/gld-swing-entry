@@ -98,6 +98,7 @@ EXPERIMENTAL_FEATURE_COLUMNS = [
     "gld_vs_dxy_20",
     "gld_vs_tlt_20",
     "gld_vs_gdx_20",
+    "gld_vs_gdx_60",
     "slv_gld_ratio_20",
 ]
 
@@ -248,7 +249,7 @@ def add_context_features(frame: pd.DataFrame, context_frames: dict[str, pd.DataF
 
     context_frames = {} if context_frames is None else context_frames
 
-    def add_ratio_feature(symbol: str, feature_name: str, numerator: str = "gld") -> None:
+    def add_ratio_feature(symbol: str, feature_name: str, lookback: int = 20, numerator: str = "gld") -> None:
         nonlocal df
         context_frame = context_frames.get(symbol)
         if context_frame is None:
@@ -261,13 +262,14 @@ def add_context_features(frame: pd.DataFrame, context_frames: dict[str, pd.DataF
             ratio = df["close"] / df[column_name]
         else:
             ratio = df[column_name] / df["close"]
-        df[feature_name] = ratio.pct_change(20)
+        df[feature_name] = ratio.pct_change(lookback)
         df = df.drop(columns=[column_name])
 
     add_ratio_feature("SPY", "gld_vs_spy_20")
     add_ratio_feature("UUP", "gld_vs_dxy_20")
     add_ratio_feature("TLT", "gld_vs_tlt_20")
     add_ratio_feature("GDX", "gld_vs_gdx_20")
+    add_ratio_feature("GDX", "gld_vs_gdx_60", lookback=60)
     add_ratio_feature("SLV", "slv_gld_ratio_20", numerator="context")
     return df
 
